@@ -57,14 +57,15 @@ jobs:
           patch=${patch:-0}
 
           commit_subject=$(git log -1 --pretty=%s)
-          commit_subject_lower=$(printf '%s' "$commit_subject" | tr '[:upper:]' '[:lower:]')
+          first_word=${commit_subject%% *}
+          lower_subject=${commit_subject,,}
 
-          if [[ $commit_subject =~ ^[^[:space:]]*!: ]]; then
+          if [[ $first_word == *!: ]]; then
             major=$((major + 1))
             minor=0
             patch=0
             bump_type="major"
-          elif [[ $commit_subject_lower =~ ^feat(\([^)]*\))?: ]]; then
+          elif [[ $lower_subject == feat:* ]] || [[ $lower_subject == feat(*):* ]]; then
             minor=$((minor + 1))
             patch=0
             bump_type="minor"
