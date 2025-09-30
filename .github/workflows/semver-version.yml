@@ -57,22 +57,23 @@ jobs:
           patch=${patch:-0}
 
           commit_subject=$(git log -1 --pretty=%s)
-          echo $commit_subject
           commit_subject_lower=$(printf '%s' "$commit_subject" | tr '[:upper:]' '[:lower:]')
-          echo $commit_subject_lower
 
-          if [[ $commit_subject =~ ^[^[:space:]]*\!: ]]; then
-            major=$((major + 1))
-            minor=0
-            patch=0
-            bump_type="major"
-          elif [[ $commit_subject_lower =~ ^feat(\([^)]*\))?: ]]; then
-            minor=$((minor + 1))
-            patch=0
-            bump_type="minor"
-          else
-            patch=$((patch + 1))
-            bump_type="patch"
+          major_pattern='^[^[:space:]]*!:'
+          minor_pattern='^feat(\([^)]*\))?:'
+
+          if [[ $commit_subject =~ $major_pattern ]]; then
+              major=$((major + 1))
+              minor=0
+              patch=0
+              bump_type="major"
+            elif [[ $commit_subject_lower =~ $minor_pattern ]]; then
+              minor=$((minor + 1))
+              patch=0
+              bump_type="minor"
+            else
+              patch=$((patch + 1))
+              bump_type="patch"
           fi
 
           new_version="$major.$minor.$patch"
