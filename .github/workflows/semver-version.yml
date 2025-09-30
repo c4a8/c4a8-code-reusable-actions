@@ -1,0 +1,119 @@
+name: Generate Semantic Version
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: "Calculated semantic version"
+        value: ${{ jobs.bump.outputs.version }}
+      tag:
+        description: "Created tag name"
+        value: ${{ jobs.bump.outputs.tag }}
+      bump_type:
+        description: "Type of bump applied (major, minor, patch)"
+        value: ${{ jobs.bump.outputs.bump_type }}
+      previous_tag:
+        description: "Most recent tag prior to calculation (if any)"
+        value: ${{ jobs.bump.outputs.previous_tag }}
+      commit_subject:
+        description: "Commit subject that drove the bump decision"
+        value: ${{ jobs.bump.outputs.commit_subject }}
+
+jobs:
+  bump:
+    name: Determine version and tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      tag: ${{ steps.compute.outputs.tag }}
+      bump_type: ${{ steps.compute.outputs.bump_type }}
+      previous_tag: ${{ steps.compute.outputs.previous_tag }}
+      commit_subject: ${{ steps.compute.outputs.commit_subject }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: compute
+        shell: bash
+        run: |
+          set -eo pipefail
+
+          last_tag=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+          if [[ -z "$last_tag" ]]; then
+            last_version="0.0.0"
+          else
+            last_version="${last_tag#v}"
+          fi
+
+          IFS='.' read -r major minor patch <<< "$last_version"
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+
+          commit_subject=$(git log -1 --pretty=%s)
+          commit_subject_lower=$(printf '%s' "$commit_subject" | tr '[:upper:]' '[:lower:]')
+
+          if [[ $commit_subject =~ ^[^[:space:]]*!: ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+            bump_type="major"
+          elif [[ $commit_subject_lower =~ ^feat(\([^)]*\))?: ]]; then
+            minor=$((minor + 1))
+            patch=0
+            bump_type="minor"
+          else
+            patch=$((patch + 1))
+            bump_type="patch"
+          fi
+
+          new_version="$major.$minor.$patch"
+          new_tag="v${new_version}"
+
+          printf 'bump_type=%s\n' "$bump_type" >> "$GITHUB_OUTPUT"
+          printf 'previous_tag=%s\n' "$last_tag" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$new_version" >> "$GITHUB_OUTPUT"
+          printf 'tag=%s\n' "$new_tag" >> "$GITHUB_OUTPUT"
+          printf 'commit_subject=%s\n' "$commit_subject" >> "$GITHUB_OUTPUT"
+
+          echo "Determined $bump_type bump from '$commit_subject' -> $new_tag"
+
+      - name: Create and push tag
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+        shell: bash
+        run: |
+          set -eo pipefail
+          if git rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
+            echo "Tag ${TAG_NAME} already exists. Skipping creation."
+            exit 0
+          fi
+
+          git tag "${TAG_NAME}" "${GITHUB_SHA}"
+          git push origin "${TAG_NAME}"
+          echo "Pushed tag ${TAG_NAME}"
+
+      - name: Create GitHub release
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -eo pipefail
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists. Skipping creation."
+            exit 0
+          fi
+
+          gh release create "${TAG_NAME}" \
+            --title "${TAG_NAME}" \
+            --target "${GITHUB_SHA}" \
+            --generate-notes
+          echo "Created release ${TAG_NAME}"
