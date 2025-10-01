@@ -1,4 +1,4 @@
-name: release-semver-version
+name: Release Semver Version
 
 on:
   push:
