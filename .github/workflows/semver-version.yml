@@ -2,6 +2,12 @@ name: Generate Semantic Version
 
 on:
   workflow_call:
+    inputs:
+      prefix:
+        description: "Optional prefix to prepend to generated tags (e.g., module names)"
+        required: false
+        type: string
+        default: ""
     outputs:
       version:
         description: "Calculated semantic version"
@@ -40,15 +46,27 @@ jobs:
 
       - name: Compute next version
         id: compute
+        env:
+          PREFIX: ${{ inputs.prefix }}
         shell: bash
         run: |
           set -eo pipefail
 
-          last_tag=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+          prefix="${PREFIX:-}"
+          if [[ -n "$prefix" ]]; then
+            tag_match="${prefix}-v*"
+            prefix_with_dash="${prefix}-"
+          else
+            tag_match='v*'
+            prefix_with_dash=""
+          fi
+
+          last_tag=$(git describe --tags --match "$tag_match" --abbrev=0 2>/dev/null || echo "")
           if [[ -z "$last_tag" ]]; then
             last_version="0.0.0"
           else
-            last_version="${last_tag#v}"
+            stripped_tag="${last_tag#${prefix_with_dash}}"
+            last_version="${stripped_tag#v}"
           fi
 
           IFS='.' read -r major minor patch <<< "$last_version"
@@ -77,7 +95,7 @@ jobs:
           fi
 
           new_version="$major.$minor.$patch"
-          new_tag="v${new_version}"
+          new_tag="${prefix_with_dash}v${new_version}"
 
           printf 'bump_type=%s\n' "$bump_type" >> "$GITHUB_OUTPUT"
           printf 'previous_tag=%s\n' "$last_tag" >> "$GITHUB_OUTPUT"

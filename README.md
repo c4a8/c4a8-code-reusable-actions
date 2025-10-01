@@ -20,6 +20,8 @@ on:
 jobs:
   version:
     uses: c4a8/c4a8-code-reusable-actions/.github/workflows/semver-version.yml@main
+    with:
+      prefix: license-module # optional prefix for tags like license-module-vX.Y.Z
 
   publish:
     runs-on: ubuntu-latest
@@ -43,4 +45,4 @@ The workflow inspects the latest commit message and applies the following preced
 
 If no existing tags matching `v*` are found, versioning starts from `0.0.0`.
 
-Each run also publishes (or updates) a Git tag matching the new version (`vX.Y.Z`) and creates a GitHub release with auto-generated release notes for that tag. Existing tags or releases are detected and left untouched.
+Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vX.Y.Z`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vX.Y.Z`. The workflow creates a GitHub release with auto-generated release notes for the generated tag. Existing tags or releases are detected and left untouched.
