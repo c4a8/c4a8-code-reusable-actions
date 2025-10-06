@@ -74,25 +74,57 @@ jobs:
           minor=${minor:-0}
           patch=${patch:-0}
 
-          commit_subject=$(git log -1 --pretty=%s)
-          commit_subject_lower=$(printf '%s' "$commit_subject" | tr '[:upper:]' '[:lower:]')
-
           major_pattern='^[^[:space:]]*!:'
           minor_pattern='^feat(\([^)]*\))?:'
 
-          if [[ $commit_subject =~ $major_pattern ]]; then
+          if [[ -n "$last_tag" ]]; then
+            mapfile -t commit_subjects < <(git log "${last_tag}..HEAD" --pretty=%s)
+          else
+            mapfile -t commit_subjects < <(git log --pretty=%s)
+          fi
+
+          highest_level=0
+          commit_subject=""
+
+          for subject in "${commit_subjects[@]}"; do
+            [[ -z "$commit_subject" ]] && commit_subject="$subject"
+
+            subject_lower=$(printf '%s' "$subject" | tr '[:upper:]' '[:lower:]')
+
+            if [[ $subject =~ $major_pattern ]]; then
+              highest_level=2
+              commit_subject="$subject"
+              break
+            elif [[ $subject_lower =~ $minor_pattern ]]; then
+              if (( highest_level < 1 )); then
+                highest_level=1
+                commit_subject="$subject"
+              fi
+            fi
+          done
+
+          if [[ ${#commit_subjects[@]} -eq 0 ]]; then
+            commit_subject="No commits since last release"
+            highest_level=0
+          fi
+
+          case $highest_level in
+            2)
               major=$((major + 1))
               minor=0
               patch=0
               bump_type="major"
-            elif [[ $commit_subject_lower =~ $minor_pattern ]]; then
+              ;;
+            1)
               minor=$((minor + 1))
               patch=0
               bump_type="minor"
-            else
+              ;;
+            *)
               patch=$((patch + 1))
               bump_type="patch"
-          fi
+              ;;
+          esac
 
           new_version="$major.$minor.$patch"
           new_tag="${prefix_with_dash}v${new_version}"
