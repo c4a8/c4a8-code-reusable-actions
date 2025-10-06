@@ -7,6 +7,11 @@ on:
     paths:
       - ".github/workflows/semver-version.yml"
   workflow_dispatch:
+    inputs:
+      create_tag:
+        description: "Create a Git tag and release"
+        default: false
+        type: boolean
 
 permissions:
   packages: write
@@ -22,3 +27,4 @@ jobs:
     uses: ./.github/workflows/semver-version.yml
     with:
       prefix: "semver-versioning"
+      supress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
