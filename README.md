@@ -22,6 +22,9 @@ jobs:
     uses: c4a8/c4a8-code-reusable-actions/.github/workflows/semver-version.yml@main
     with:
       prefix: license-module # optional prefix for tags like license-module-vX.Y.Z
+      supress_release: false # optional: set true to skip creating a GitHub release
+      supress_tag: false # optional: set true to skip both tag and release creation
+      check_last_commit_only: false # optional: set true to only inspect the latest commit
 
   publish:
     runs-on: ubuntu-latest
@@ -33,7 +36,23 @@ jobs:
           echo "Tag:     ${{ needs.version.outputs.tag }}"
           echo "Bump:    ${{ needs.version.outputs.bump_type }}"
           echo "Prev tag:${{ needs.version.outputs.previous_tag }}"
+          echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
 ```
+
+### Inputs
+
+- `prefix` _(string, default: empty)_ – Optional prefix prepended to generated tags (for example `license-module-vX.Y.Z`).
+- `supress_release` _(boolean, default: false)_ – When `true`, skips creating a GitHub release while still creating tags (unless suppressed below).
+- `supress_tag` _(boolean, default: false)_ – When `true`, skips creating both the Git tag and the GitHub release.
+- `check_last_commit_only` _(boolean, default: false)_ – When `true`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
+
+### Outputs
+
+- `version` – The calculated semantic version (for example `1.2.3`).
+- `tag` – The tag name that would be created (for example `v1.2.3` or `module-v1.2.3`).
+- `bump_type` – The bump classification applied (`major`, `minor`, or `patch`).
+- `previous_tag` – The most recent matching tag prior to this run, if any.
+- `commit_subject` – The commit message subject that determined the bump decision.
 
 ### Bump rules
 
