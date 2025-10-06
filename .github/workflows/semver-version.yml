@@ -162,6 +162,30 @@ jobs:
 
           echo "Determined $bump_type bump from '$commit_subject' -> $new_tag"
 
+      - name: Write summary
+        shell: bash
+        env:
+          VERSION: ${{ steps.compute.outputs.version }}
+          TAG: ${{ steps.compute.outputs.tag }}
+          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+          PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
+          COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+        run: |
+          set -eo pipefail
+
+          previous="${PREVIOUS_TAG:-none}"
+          commit="${COMMIT_SUBJECT:-No commits since last release}"
+
+          {
+            echo "### Semantic version summary"
+            echo ""
+            echo "- Version: \`${VERSION}\`"
+            echo "- Tag: \`${TAG}\`"
+            echo "- Bump type: \`${BUMP_TYPE}\`"
+            echo "- Previous tag: \`${previous}\`"
+            echo "- Commit: ${commit}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create and push tag
         if: ${{ inputs.supress_tag != true }}
         env:
