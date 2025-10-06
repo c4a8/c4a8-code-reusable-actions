@@ -8,6 +8,21 @@ on:
         required: false
         type: string
         default: ""
+      supress_release:
+        description: "If true, skip creating a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      supress_tag:
+        description: "If true, skip creating a Git tag and release"
+        required: false
+        type: boolean
+        default: false
+      check_last_commit_only:
+        description: "If true, only inspect the most recent commit when determining bump type"
+        required: false
+        type: boolean
+        default: false
     outputs:
       version:
         description: "Calculated semantic version"
@@ -48,11 +63,13 @@ jobs:
         id: compute
         env:
           PREFIX: ${{ inputs.prefix }}
+          CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
         shell: bash
         run: |
           set -eo pipefail
 
           prefix="${PREFIX:-}"
+          check_last_commit_only="${CHECK_LAST_COMMIT_ONLY,,}"
           if [[ -n "$prefix" ]]; then
             tag_match="${prefix}-v*"
             prefix_with_dash="${prefix}-"
@@ -77,10 +94,18 @@ jobs:
           major_pattern='^[^[:space:]]*!:'
           minor_pattern='^feat(\([^)]*\))?:'
 
-          if [[ -n "$last_tag" ]]; then
-            mapfile -t commit_subjects < <(git log "${last_tag}..HEAD" --pretty=%s)
+          if [[ "$check_last_commit_only" == "true" ]]; then
+            if [[ -n "$last_tag" ]]; then
+              mapfile -t commit_subjects < <(git log -1 --pretty=%s "${last_tag}..HEAD")
+            else
+              mapfile -t commit_subjects < <(git log -1 --pretty=%s)
+            fi
           else
-            mapfile -t commit_subjects < <(git log --pretty=%s)
+            if [[ -n "$last_tag" ]]; then
+              mapfile -t commit_subjects < <(git log "${last_tag}..HEAD" --pretty=%s)
+            else
+              mapfile -t commit_subjects < <(git log --pretty=%s)
+            fi
           fi
 
           highest_level=0
@@ -138,6 +163,7 @@ jobs:
           echo "Determined $bump_type bump from '$commit_subject' -> $new_tag"
 
       - name: Create and push tag
+        if: ${{ inputs.supress_tag != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
         shell: bash
@@ -153,6 +179,7 @@ jobs:
           echo "Pushed tag ${TAG_NAME}"
 
       - name: Create GitHub release
+        if: ${{ inputs.supress_tag != true && inputs.supress_release != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
