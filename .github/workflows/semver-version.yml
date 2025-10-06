@@ -8,12 +8,12 @@ on:
         required: false
         type: string
         default: ""
-      supress_release:
+      suppress_release:
         description: "If true, skip creating a GitHub release"
         required: false
         type: boolean
         default: false
-      supress_tag:
+      suppress_tag:
         description: "If true, skip creating a Git tag and release"
         required: false
         type: boolean
@@ -187,7 +187,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create and push tag
-        if: ${{ inputs.supress_tag != true }}
+        if: ${{ inputs.suppress_tag != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
         shell: bash
@@ -203,7 +203,7 @@ jobs:
           echo "Pushed tag ${TAG_NAME}"
 
       - name: Create GitHub release
-        if: ${{ inputs.supress_tag != true && inputs.supress_release != true }}
+        if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
