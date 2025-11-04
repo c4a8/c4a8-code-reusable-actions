@@ -23,6 +23,16 @@ on:
         required: false
         type: boolean
         default: false
+      is_prerelease:
+        description: "If true, generate a prerelease version"
+        required: false
+        type: boolean
+        default: false
+      prerelease_name:
+        description: "Name for prerelease identifier (e.g., 'prerelease', 'rc', 'alpha')"
+        required: false
+        type: string
+        default: "prerelease"
     outputs:
       version:
         description: "Calculated semantic version"
@@ -52,6 +62,7 @@ jobs:
       tag: ${{ steps.compute.outputs.tag }}
       bump_type: ${{ steps.compute.outputs.bump_type }}
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
+      previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
       commit_subject: ${{ steps.compute.outputs.commit_subject }}
     steps:
       - name: Checkout repository
@@ -64,12 +75,17 @@ jobs:
         env:
           PREFIX: ${{ inputs.prefix }}
           CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
+          IS_PRERELEASE: ${{ inputs.is_prerelease }}
+          PRERELEASE_NAME: ${{ inputs.prerelease_name }}
         shell: bash
         run: |
           set -eo pipefail
 
           prefix="${PREFIX:-}"
           check_last_commit_only="${CHECK_LAST_COMMIT_ONLY,,}"
+          is_prerelease="${IS_PRERELEASE,,}"
+          prerelease_name="${PRERELEASE_NAME:-prerelease}"
+
           if [[ -n "$prefix" ]]; then
             tag_match="${prefix}-v*"
             prefix_with_dash="${prefix}-"
@@ -78,15 +94,41 @@ jobs:
             prefix_with_dash=""
           fi
 
-          last_tag=$(git describe --tags --match "$tag_match" --abbrev=0 2>/dev/null || echo "")
-          if [[ -z "$last_tag" ]]; then
-            last_version="0.0.0"
-          else
-            stripped_tag="${last_tag#${prefix_with_dash}}"
-            last_version="${stripped_tag#v}"
+          # Get all tags matching the pattern
+          mapfile -t all_tags < <(git tag -l "$tag_match" --sort=-version:refname || echo "")
+
+          # Find the last stable version (no prerelease identifier)
+          last_stable_tag=""
+          last_stable_version="0.0.0"
+          for tag in "${all_tags[@]}"; do
+            stripped_tag="${tag#${prefix_with_dash}}"
+            version="${stripped_tag#v}"
+            # Check if this is a stable version (no dash in version)
+            if [[ ! "$version" =~ - ]]; then
+              last_stable_tag="$tag"
+              last_stable_version="$version"
+              break
+            fi
+          done
+
+          # Find the last prerelease version with matching prerelease name
+          last_prerelease_tag=""
+          last_prerelease_version="0"
+          if [[ "$is_prerelease" == "true" ]]; then
+            for tag in "${all_tags[@]}"; do
+              stripped_tag="${tag#${prefix_with_dash}}"
+              version="${stripped_tag#v}"
+              # Check if this is a prerelease version with matching name
+              if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${prerelease_name}\.([0-9]+)$ ]]; then
+                last_prerelease_tag="$tag"
+                last_prerelease_version="${BASH_REMATCH[1]}"
+                break
+              fi
+            done
           fi
 
-          IFS='.' read -r major minor patch <<< "$last_version"
+          # Parse the stable version for bump calculation
+          IFS='.' read -r major minor patch <<< "$last_stable_version"
           major=${major:-0}
           minor=${minor:-0}
           patch=${patch:-0}
@@ -94,15 +136,16 @@ jobs:
           major_pattern='^[^[:space:]]*!:'
           minor_pattern='^feat(\([^)]*\))?:'
 
+          # Determine which commits to check based on mode
           if [[ "$check_last_commit_only" == "true" ]]; then
-            if [[ -n "$last_tag" ]]; then
-              mapfile -t commit_subjects < <(git log -1 --pretty=%s "${last_tag}..HEAD")
+            if [[ -n "$last_stable_tag" ]]; then
+              mapfile -t commit_subjects < <(git log -1 --pretty=%s "${last_stable_tag}..HEAD")
             else
               mapfile -t commit_subjects < <(git log -1 --pretty=%s)
             fi
           else
-            if [[ -n "$last_tag" ]]; then
-              mapfile -t commit_subjects < <(git log "${last_tag}..HEAD" --pretty=%s)
+            if [[ -n "$last_stable_tag" ]]; then
+              mapfile -t commit_subjects < <(git log "${last_stable_tag}..HEAD" --pretty=%s)
             else
               mapfile -t commit_subjects < <(git log --pretty=%s)
             fi
@@ -133,6 +176,7 @@ jobs:
             highest_level=0
           fi
 
+          # Calculate the new stable version based on bump type
           case $highest_level in
             2)
               major=$((major + 1))
@@ -151,16 +195,34 @@ jobs:
               ;;
           esac
 
-          new_version="$major.$minor.$patch"
+          # Build the final version string and determine changelog base tag
+          if [[ "$is_prerelease" == "true" ]]; then
+            # Increment prerelease version
+            prerelease_version=$((last_prerelease_version + 1))
+            new_version="$major.$minor.$patch-${prerelease_name}.${prerelease_version}"
+            # For prereleases, use the previous prerelease tag if it exists, otherwise the stable tag
+            if [[ -n "$last_prerelease_tag" ]]; then
+              changelog_base_tag="$last_prerelease_tag"
+            else
+              changelog_base_tag="$last_stable_tag"
+            fi
+          else
+            new_version="$major.$minor.$patch"
+            # For stable releases, always use the last stable tag
+            changelog_base_tag="$last_stable_tag"
+          fi
+
           new_tag="${prefix_with_dash}v${new_version}"
 
           printf 'bump_type=%s\n' "$bump_type" >> "$GITHUB_OUTPUT"
-          printf 'previous_tag=%s\n' "$last_tag" >> "$GITHUB_OUTPUT"
+          printf 'previous_tag=%s\n' "$last_stable_tag" >> "$GITHUB_OUTPUT"
+          printf 'previous_tag_for_changelog=%s\n' "$changelog_base_tag" >> "$GITHUB_OUTPUT"
           printf 'version=%s\n' "$new_version" >> "$GITHUB_OUTPUT"
           printf 'tag=%s\n' "$new_tag" >> "$GITHUB_OUTPUT"
           printf 'commit_subject=%s\n' "$commit_subject" >> "$GITHUB_OUTPUT"
 
           echo "Determined $bump_type bump from '$commit_subject' -> $new_tag"
+          echo "Changelog will be generated from: ${changelog_base_tag:-initial commit}"
 
       - name: Write summary
         shell: bash
@@ -206,7 +268,9 @@ jobs:
         if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
+          CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IS_PRERELEASE: ${{ inputs.is_prerelease }}
         shell: bash
         run: |
           set -eo pipefail
@@ -216,8 +280,28 @@ jobs:
             exit 0
           fi
 
-          gh release create "${TAG_NAME}" \
-            --title "${TAG_NAME}" \
-            --target "${GITHUB_SHA}" \
+          is_prerelease="${IS_PRERELEASE,,}"
+
+          # Build the release command with conditional notes-start-tag
+          release_args=(
+            "${TAG_NAME}"
+            --title "${TAG_NAME}"
+            --target "${GITHUB_SHA}"
             --generate-notes
+          )
+
+          # Add prerelease flag if needed
+          if [[ "$is_prerelease" == "true" ]]; then
+            release_args+=(--prerelease)
+          fi
+
+          # Add notes-start-tag if there's a previous tag for changelog
+          if [[ -n "$CHANGELOG_BASE_TAG" ]]; then
+            release_args+=(--notes-start-tag "$CHANGELOG_BASE_TAG")
+            echo "Generating release notes from ${CHANGELOG_BASE_TAG} to ${TAG_NAME}"
+          else
+            echo "Generating release notes from initial commit to ${TAG_NAME}"
+          fi
+
+          gh release create "${release_args[@]}"
           echo "Created release ${TAG_NAME}"
