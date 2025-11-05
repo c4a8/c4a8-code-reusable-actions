@@ -95,7 +95,12 @@ jobs:
           fi
 
           # Get all tags matching the pattern
-          mapfile -t all_tags < <(git tag -l "$tag_match" --sort=-version:refname || echo "")
+          tag_output="$(git tag -l "$tag_match" --sort=-version:refname)"
+          if [[ $? -eq 0 && -n "$tag_output" ]]; then
+            mapfile -t all_tags <<< "$tag_output"
+          else
+            all_tags=()
+          fi
 
           # Find the last stable version (no prerelease identifier)
           last_stable_tag=""
