@@ -115,11 +115,13 @@ jobs:
           last_prerelease_tag=""
           last_prerelease_version="0"
           if [[ "$is_prerelease" == "true" ]]; then
+            # Escape special regex characters in prerelease_name
+            escaped_prerelease_name=$(printf '%s' "$prerelease_name" | sed 's/[].[*^$()+?{|\\]/\\&/g')
             for tag in "${all_tags[@]}"; do
               stripped_tag="${tag#${prefix_with_dash}}"
               version="${stripped_tag#v}"
               # Check if this is a prerelease version with matching name
-              if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${prerelease_name}\.([0-9]+)$ ]]; then
+              if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${escaped_prerelease_name}\.([0-9]+)$ ]]; then
                 last_prerelease_tag="$tag"
                 last_prerelease_version="${BASH_REMATCH[1]}"
                 break
