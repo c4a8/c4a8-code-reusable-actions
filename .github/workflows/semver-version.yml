@@ -95,8 +95,7 @@ jobs:
           fi
 
           # Get all tags matching the pattern
-          tag_output="$(git tag -l "$tag_match" --sort=-version:refname)"
-          if [[ $? -eq 0 && -n "$tag_output" ]]; then
+          if tag_output=$(git tag -l "$tag_match" --sort=-version:refname) && [[ -n "$tag_output" ]]; then
             mapfile -t all_tags <<< "$tag_output"
           else
             all_tags=()
