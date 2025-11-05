@@ -25,6 +25,8 @@ jobs:
       suppress_release: false # optional: set true to skip creating a GitHub release
       suppress_tag: false # optional: set true to skip both tag and release creation
       check_last_commit_only: false # optional: set true to only inspect the latest commit
+      is_prerelease: false # optional: set true to generate a prerelease version
+      prerelease_name: prerelease # optional: name for prerelease identifier (e.g., 'rc', 'alpha', 'beta')
 
   publish:
     runs-on: ubuntu-latest
@@ -45,6 +47,8 @@ jobs:
 - `suppress_release` _(boolean, default: false)_ – When `true`, skips creating a GitHub release while still creating tags (unless suppressed below).
 - `suppress_tag` _(boolean, default: false)_ – When `true`, skips creating both the Git tag and the GitHub release.
 - `check_last_commit_only` _(boolean, default: false)_ – When `true`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
+- `is_prerelease` _(boolean, default: false)_ – When `true`, generates a prerelease version (for example `1.2.3-rc.1`).
+- `prerelease_name` _(string, default: "prerelease")_ – Name for the prerelease identifier (for example `rc`, `alpha`, `beta`).
 
 ### Outputs
 
