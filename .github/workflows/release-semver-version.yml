@@ -12,6 +12,10 @@ on:
         description: "Create a Git tag and release"
         default: false
         type: boolean
+      is_prerelease:
+        description: "Create a prerelease version"
+        default: false
+        type: boolean
 
 permissions:
   packages: write
@@ -28,3 +32,4 @@ jobs:
     with:
       prefix: "semver-versioning"
       suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
+      is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
