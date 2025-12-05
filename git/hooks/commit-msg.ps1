@@ -28,7 +28,7 @@ $subject = ($commitMsg -split "`n")[0]
 # - scope: optional
 # - !: optional (indicates breaking change)
 # - description: required
-$pattern = '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|deps)(\([a-z0-9\-\/]+\))?(!)?: .{1,}'
+$pattern = '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|deps)(\([a-z0-9\-\/]+\))?(!)?: \S.{0,}'
 
 if ($subject -notmatch $pattern) {
     Write-Host ""
