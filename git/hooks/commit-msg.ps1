@@ -44,7 +44,7 @@ if ($subject -notmatch $pattern) {
     Write-Host "  feat:     A new feature" -ForegroundColor White
     Write-Host "  fix:      A bug fix" -ForegroundColor White
     Write-Host "  docs:     Documentation only changes" -ForegroundColor White
-    Write-Host "  style:    Code style changes (formatting, missing semi colons, etc)" -ForegroundColor White
+    Write-Host "  style:    Code style changes (formatting, missing semicolons, etc.)" -ForegroundColor White
     Write-Host "  refactor: Code change that neither fixes a bug nor adds a feature" -ForegroundColor White
     Write-Host "  perf:     Performance improvements" -ForegroundColor White
     Write-Host "  test:     Adding or correcting tests" -ForegroundColor White
