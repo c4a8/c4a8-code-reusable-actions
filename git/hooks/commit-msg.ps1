@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 # Conventional Commits validation hook
 # This hook validates commit messages according to https://www.conventionalcommits.org/
 
