@@ -76,24 +76,10 @@ A PowerShell-based Git commit-msg hook is available at `git/hooks/commit-msg.ps1
 
 ### Installation
 
-Copy the hook script to your repository's `.git/hooks` directory (without the `.ps1` extension or wrapped in a shell script that calls PowerShell):
+Copy the hook script to your repository's `.git/hooks` directory (if you are using linux or macOS: copy it without the `.ps1` extension or wrap it in a shell script that calls PowerShell):
 
-**Option 1: Direct copy (requires Git to execute PowerShell scripts)**
+**On macOS and Linux you have to make the file executable after copiying:**
 ```bash
-cp git/hooks/commit-msg.ps1 .git/hooks/commit-msg
-chmod +x .git/hooks/commit-msg
-```
-
-**Option 2: Create a wrapper script (cross-platform)**
-```bash
-# Create .git/hooks/commit-msg with the following content:
-#!/bin/sh
-exec pwsh -NoProfile -File "$(dirname "$0")/commit-msg.ps1" "$1"
-```
-
-Then copy the PowerShell script:
-```bash
-cp git/hooks/commit-msg.ps1 .git/hooks/
 chmod +x .git/hooks/commit-msg
 ```
 
