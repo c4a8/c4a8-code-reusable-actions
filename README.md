@@ -69,3 +69,61 @@ The workflow inspects the latest commit message and applies the following preced
 If no existing tags matching `v*` are found, versioning starts from `0.0.0`.
 
 Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vX.Y.Z`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vX.Y.Z`. The workflow creates a GitHub release with auto-generated release notes for the generated tag. Existing tags or releases are detected and left untouched.
+
+## Commit message hook
+
+A PowerShell-based Git commit-msg hook is available at `git/hooks/commit-msg.ps1` to enforce the [Conventional Commits](https://www.conventionalcommits.org/) standard locally before commits are created.
+
+### Installation
+
+Copy the hook script to your repository's `.git/hooks` directory (if you are using linux or macOS: copy it without the `.ps1` extension or wrap it in a shell script that calls PowerShell):
+
+**On macOS and Linux you have to make the file executable after copying:**
+```bash
+chmod +x .git/hooks/commit-msg
+```
+
+### What it validates
+
+The hook validates that commit messages follow the Conventional Commits format:
+
+```
+<type>[optional scope][optional !]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+#### Valid types
+
+| Type | Description |
+|------|-------------|
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `docs` | Documentation only changes |
+| `style` | Code style changes (formatting, missing semicolons, etc.) |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `perf` | Performance improvements |
+| `test` | Adding or correcting tests |
+| `build` | Changes to build system or dependencies |
+| `ci` | Changes to CI configuration files and scripts |
+| `chore` | Other changes that don't modify src or test files |
+| `revert` | Reverts a previous commit |
+| `deps` | Dependency updates |
+
+#### Examples
+
+```
+feat: add user authentication
+fix(api): resolve null reference exception
+feat(auth)!: change login flow (breaking change)
+docs: update README with setup instructions
+```
+
+### Warnings
+
+The hook will display warnings (but not reject the commit) for:
+
+- **Long subject lines**: Subject lines longer than 72 characters
+- **Missing breaking change documentation**: When `!` is used but no `BREAKING CHANGE:` section is present in the body
