@@ -72,13 +72,18 @@ Each run also publishes (or updates) a Git tag matching the new version. By defa
 
 ## Commit message hook
 
-A PowerShell-based Git commit-msg hook is available at `git/hooks/commit-msg.ps1` to enforce the [Conventional Commits](https://www.conventionalcommits.org/) standard locally before commits are created.
+A PowerShell-based Git commit-msg hook is available at `git/hooks/enforceConventionalCommits/commit-msg.ps1` to enforce the [Conventional Commits](https://www.conventionalcommits.org/) standard locally before commits are created.
 
 ### Installation
 
-Copy the hook script to your repository's `.git/hooks` directory (if you are using linux or macOS: copy it without the `.ps1` extension or wrap it in a shell script that calls PowerShell):
+#### Windows
+1. Copy **both** the `commit-msg.ps1` and `commit-msg` to your repository's `.git/hooks` directory 
 
-**On macOS and Linux you have to make the file executable after copying:**
+#### Mac / Linux
+
+1. Copy just the `commit-msg.ps1` to your repository's `.git/hooks` directory
+1. Remove the .ps1 ending (so the final filename inside the `.git/hooks` directory is `commit-msg`)
+1. Add execution permissions:
 ```bash
 chmod +x .git/hooks/commit-msg
 ```

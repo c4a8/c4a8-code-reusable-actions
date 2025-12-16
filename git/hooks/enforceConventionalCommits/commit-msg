@@ -1,0 +1,13 @@
+#!/bin/sh
+# Conventional Commits validation hook wrapper for Windows
+# This hook validates commit messages according to https://www.conventionalcommits.org/
+
+# Detect if running on Windows and use PowerShell
+if command -v pwsh.exe >/dev/null 2>&1; then
+    exec pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$(dirname "$0")/commit-msg.ps1" "$@"
+elif command -v powershell.exe >/dev/null 2>&1; then
+    exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(dirname "$0")/commit-msg.ps1" "$@"
+else
+    echo "PowerShell is not available. Please install PowerShell to use this hook on Windows."
+    exit 1
+fi
