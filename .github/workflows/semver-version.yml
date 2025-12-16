@@ -210,8 +210,12 @@ jobs:
             # Increment prerelease version
             prerelease_version=$((last_prerelease_version + 1))
             new_version="$major.$minor.$patch-${prerelease_name}.${prerelease_version}"
-            # For prereleases, use the last stable tag (not the previous prerelease)
-            changelog_base_tag="$last_stable_tag"
+            # For prereleases, compare against the previous prerelease for this base version if present, otherwise last stable
+            if [[ -n "$last_prerelease_tag" ]]; then
+              changelog_base_tag="$last_prerelease_tag"
+            else
+              changelog_base_tag="$last_stable_tag"
+            fi
           else
             new_version="$major.$minor.$patch"
             # For stable releases, always use the last stable tag
