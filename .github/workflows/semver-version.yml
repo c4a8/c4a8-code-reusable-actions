@@ -115,24 +115,6 @@ jobs:
             fi
           done
 
-          # Find the last prerelease version with matching prerelease name
-          last_prerelease_tag=""
-          last_prerelease_version="0"
-          if [[ "$is_prerelease" == "true" ]]; then
-            # Escape special regex characters in prerelease_name
-            escaped_prerelease_name=$(printf '%s' "$prerelease_name" | sed 's/[].[*^$()+?{|\\]/\\&/g')
-            for tag in "${all_tags[@]}"; do
-              stripped_tag="${tag#${prefix_with_dash}}"
-              version="${stripped_tag#v}"
-              # Check if this is a prerelease version with matching name
-              if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${escaped_prerelease_name}\.([0-9]+)$ ]]; then
-                last_prerelease_tag="$tag"
-                last_prerelease_version="${BASH_REMATCH[1]}"
-                break
-              fi
-            done
-          fi
-
           # Parse the stable version for bump calculation
           IFS='.' read -r major minor patch <<< "$last_stable_version"
           major=${major:-0}
@@ -201,17 +183,35 @@ jobs:
               ;;
           esac
 
+          target_base_version="$major.$minor.$patch"
+
+          # Find the last prerelease for this target base version and name
+          last_prerelease_tag=""
+          last_prerelease_version="0"
+          if [[ "$is_prerelease" == "true" ]]; then
+            escaped_prerelease_name=$(printf '%s' "$prerelease_name" | sed 's/[].[*^$()+?{|\\]/\\&/g')
+            for tag in "${all_tags[@]}"; do
+              stripped_tag="${tag#${prefix_with_dash}}"
+              version="${stripped_tag#v}"
+              if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-${escaped_prerelease_name}\.([0-9]+)$ ]]; then
+                base_version="${BASH_REMATCH[1]}"
+                prerelease_number="${BASH_REMATCH[2]}"
+                if [[ "$base_version" == "$target_base_version" ]]; then
+                  last_prerelease_tag="$tag"
+                  last_prerelease_version="$prerelease_number"
+                  break
+                fi
+              fi
+            done
+          fi
+
           # Build the final version string and determine changelog base tag
           if [[ "$is_prerelease" == "true" ]]; then
             # Increment prerelease version
             prerelease_version=$((last_prerelease_version + 1))
             new_version="$major.$minor.$patch-${prerelease_name}.${prerelease_version}"
-            # For prereleases, use the previous prerelease tag if it exists, otherwise the stable tag
-            if [[ -n "$last_prerelease_tag" ]]; then
-              changelog_base_tag="$last_prerelease_tag"
-            else
-              changelog_base_tag="$last_stable_tag"
-            fi
+            # For prereleases, use the last stable tag (not the previous prerelease)
+            changelog_base_tag="$last_stable_tag"
           else
             new_version="$major.$minor.$patch"
             # For stable releases, always use the last stable tag
