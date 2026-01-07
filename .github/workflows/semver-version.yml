@@ -33,6 +33,22 @@ on:
         required: false
         type: string
         default: "prerelease"
+      floating_tag:
+        description: "Optional floating tag to move to the current commit (e.g. stable/insider/latest). Empty = disabled."
+        required: false
+        type: string
+        default: ""
+      floating_tag_aliases:
+        description: "Optional extra floating tags (comma-separated) to move to the same commit (e.g. 'dev,canary')."
+        required: false
+        type: string
+        default: ""
+      floating_tag_force:
+        description: "If true, force-move floating tags (recommended)."
+        required: false
+        type: boolean
+        default: true
+
     outputs:
       version:
         description: "Calculated semantic version"
@@ -64,6 +80,7 @@ jobs:
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
       previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
       commit_subject: ${{ steps.compute.outputs.commit_subject }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -273,6 +290,45 @@ jobs:
           git tag "${TAG_NAME}" "${GITHUB_SHA}"
           git push origin "${TAG_NAME}"
           echo "Pushed tag ${TAG_NAME}"
+
+      - name: Update floating tags
+        if: ${{ inputs.suppress_tag != true && inputs.floating_tag != '' }}
+        env:
+          FLOATING_TAG: ${{ inputs.floating_tag }}
+          FLOATING_TAG_ALIASES: ${{ inputs.floating_tag_aliases }}
+          FORCE: ${{ inputs.floating_tag_force }}
+        shell: bash
+        run: |
+          set -eo pipefail
+
+          main_tag="${FLOATING_TAG}"
+          aliases="${FLOATING_TAG_ALIASES}"
+          force="${FORCE,,}"
+
+          if [[ "$force" == "true" ]]; then
+            tag_flags=(-f)
+            push_flags=(-f)
+          else
+            tag_flags=()
+            push_flags=()
+          fi
+
+          tags=()
+          tags+=("$main_tag")
+
+          if [[ -n "$aliases" ]]; then
+            IFS=',' read -ra extra <<< "$aliases"
+            for t in "${extra[@]}"; do
+              t="$(echo "$t" | xargs)" # trim whitespace
+              [[ -n "$t" ]] && tags+=("$t")
+            done
+          fi
+
+          for t in "${tags[@]}"; do
+            git tag "${tag_flags[@]}" "$t" "${GITHUB_SHA}"
+            git push "${push_flags[@]}" origin "refs/tags/${t}"
+            echo "Updated floating tag: ${t} -> ${GITHUB_SHA}"
+          done
 
       - name: Create GitHub release
         if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
