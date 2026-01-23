@@ -1,0 +1,191 @@
+name: Notify Teams for GitHub release
+
+on:
+  workflow_call:
+    inputs:
+      include_prereleases:
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: "Optional: announce this tag; otherwise auto-detect latest"
+        required: false
+        type: string
+        default: ""
+      repository:
+        description: "owner/repo (defaults to caller repo)"
+        required: false
+        type: string
+        default: ""
+      workflow_link:
+        description: "Optional workflow run URL to include"
+        required: false
+        type: string
+        default: ""
+      max_highlights:
+        description: "Max number of highlight lines to include"
+        required: false
+        type: number
+        default: 6
+      max_contributors:
+        description: "Max contributors to list"
+        required: false
+        type: number
+        default: 10
+
+    secrets:
+      TEAMS_FLOW_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Build payload from GitHub release
+        id: build
+        uses: actions/github-script@v7
+        env:
+          INPUT_REPOSITORY: ${{ inputs.repository }}
+          INCLUDE_PRERELEASES: ${{ inputs.include_prereleases }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+          WORKFLOW_LINK: ${{ inputs.workflow_link }}
+          MAX_HIGHLIGHTS: ${{ inputs.max_highlights }}
+          MAX_CONTRIBUTORS: ${{ inputs.max_contributors }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const repoFull = (process.env.INPUT_REPOSITORY || '').trim() || process.env.GITHUB_REPOSITORY;
+            const [owner, repo] = repoFull.split('/');
+            const includePre = (process.env.INCLUDE_PRERELEASES || 'false').toLowerCase() === 'true';
+            const explicitTag = (process.env.INPUT_RELEASE_TAG || '').trim();
+            const workflowLink = (process.env.WORKFLOW_LINK || '').trim();
+            const maxHighlights = Number(process.env.MAX_HIGHLIGHTS || 6);
+            const maxContrib = Number(process.env.MAX_CONTRIBUTORS || 10);
+
+            // Resolve release
+            let rel;
+            if (explicitTag) {
+              rel = (await github.rest.repos.getReleaseByTag({ owner, repo, tag: explicitTag })).data;
+            } else {
+              const releases = (await github.rest.repos.listReleases({ owner, repo, per_page: 50 })).data;
+              rel = releases.find(r => !r.draft && (includePre ? true : !r.prerelease));
+              if (!rel) {
+                core.setFailed(`No ${includePre ? '' : 'stable '}release found in ${repoFull}.`);
+                return;
+              }
+            }
+
+            const tag = rel.tag_name || '';
+            const name = rel.name || tag || 'Release';
+            const url = rel.html_url || '';
+            const publishedAt = rel.published_at || '';
+            const isPrerelease = !!rel.prerelease;
+
+            // Determine previous release tag for compare + contributor range
+            // We take the next release *after* current in listReleases order (newest first),
+            // filtered by prerelease inclusion rules.
+            const releasesAll = (await github.rest.repos.listReleases({ owner, repo, per_page: 100 })).data
+              .filter(r => !r.draft)
+              .filter(r => includePre ? true : !r.prerelease);
+
+            const idx = releasesAll.findIndex(r => r.id === rel.id);
+            const prev = (idx >= 0 && idx + 1 < releasesAll.length) ? releasesAll[idx + 1] : null;
+            const prevTag = prev?.tag_name || '';
+
+            const compareUrl = (prevTag && tag)
+              ? `https://github.com/${owner}/${repo}/compare/${encodeURIComponent(prevTag)}...${encodeURIComponent(tag)}`
+              : '';
+
+            // Get commits in range and compute contributors
+            // If no prevTag, fall back to commits since default branch HEAD history might be huge;
+            // we’ll just use the release author as a single contributor in that case.
+            let contributorNames = new Set();
+
+            if (prevTag && tag) {
+              const cmp = (await github.rest.repos.compareCommits({
+                owner, repo,
+                base: prevTag,
+                head: tag,
+                per_page: 250
+              })).data;
+
+              for (const c of (cmp.commits || [])) {
+                // Prefer GitHub user login if available; fall back to commit author name
+                if (c.author?.login) contributorNames.add(c.author.login);
+                else if (c.commit?.author?.name) contributorNames.add(c.commit.author.name);
+              }
+            } else {
+              if (rel.author?.login) contributorNames.add(rel.author.login);
+            }
+
+            let contributors = Array.from(contributorNames);
+            contributors.sort((a,b) => a.localeCompare(b));
+            const contributorsTrim = contributors.slice(0, maxContrib);
+
+            const namesText = contributorsTrim.join(', ') + (contributors.length > contributorsTrim.length ? ` (+${contributors.length - contributorsTrim.length} more)` : '');
+
+            // Release notes -> highlights
+            const body = (rel.body || '').trim();
+
+            // Strategy:
+            // 1) If release body has bullet-ish lines, take first N bullet lines as highlights
+            // 2) Else take first N non-empty lines (trimmed) as highlights
+            const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+            const bulletLike = lines.filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l));
+            const pick = (bulletLike.length ? bulletLike : lines).slice(0, maxHighlights);
+
+            const highlightsText = pick.length
+              ? pick.map(l => {
+                  // Normalize bullets for Teams rendering
+                  const cleaned = l.replace(/^[-*•]\s+/, '').replace(/^\d+\.\s+/, '');
+                  return `• ${cleaned}`;
+                }).join('\n')
+              : '• No release notes provided.';
+
+            // Summary: first sentence-ish or first line
+            const summary = lines[0] ? (lines[0].length > 180 ? lines[0].slice(0, 177) + '…' : lines[0]) : 'New release published.';
+
+            // Try to extract version from tag if it contains vX.Y.Z...
+            const versionMatch = tag.match(/v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/);
+            const version = versionMatch ? versionMatch[1] : '';
+
+            const payload = {
+              title: `Release published: ${name}`,
+              repository: `${owner}/${repo}`,
+              release: {
+                name,
+                tag,
+                version,
+                isPrerelease,
+                publishedAt,
+                url
+              },
+              notes: {
+                summary,
+                highlightsText
+              },
+              contributors: {
+                count: contributors.length,
+                namesText: namesText || 'Unknown'
+              },
+              links: {
+                workflowRunUrl: workflowLink,
+                compareUrl
+              }
+            };
+
+            core.setOutput('payload', JSON.stringify(payload));
+
+      - name: Send to Power Automate webhook
+        env:
+          URI: ${{ secrets.TEAMS_FLOW_WEBHOOK_URL }}
+          PAYLOAD: ${{ steps.build.outputs.payload }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$URI"
+          echo "Sent Teams payload to Flow."
