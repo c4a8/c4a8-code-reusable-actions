@@ -54,6 +54,7 @@ jobs:
           WORKFLOW_LINK: ${{ inputs.workflow_link }}
           MAX_HIGHLIGHTS: ${{ inputs.max_highlights }}
           MAX_CONTRIBUTORS: ${{ inputs.max_contributors }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -64,6 +65,7 @@ jobs:
             const workflowLink = (process.env.WORKFLOW_LINK || '').trim();
             const maxHighlights = Number(process.env.MAX_HIGHLIGHTS || 6);
             const maxContrib = Number(process.env.MAX_CONTRIBUTORS || 10);
+            const dynamicWorkflowLink = workflowLink || `https://github.com/${owner}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID || ''}`;
 
             // Resolve release
             let rel;
@@ -173,7 +175,7 @@ jobs:
                 namesText: namesText || 'Unknown'
               },
               links: {
-                workflowRunUrl: workflowLink,
+                workflowRunUrl: dynamicWorkflowLink,
                 compareUrl
               }
             };
