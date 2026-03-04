@@ -145,11 +145,24 @@ jobs:
               }
             }
 
-            const bulletLike = (sectionLines.length ? sectionLines : lines)
+            const sectionBullets = (sectionLines.length ? sectionLines : [])
               .filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l))
               .filter(l => !/full\s+changelog/i.test(l));
-            const pick = (bulletLike.length ? bulletLike : (sectionLines.length ? sectionLines : lines).filter(l => !/full\s+changelog/i.test(l)))
-              .slice(0, maxHighlights);
+            const globalBullets = lines
+              .filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l))
+              .filter(l => !/full\s+changelog/i.test(l));
+            let pick;
+            if (headingIndex >= 0 && sectionLines.length && sectionBullets.length) {
+              // "What's Changed" section exists and has bullets: use only those bullets
+              pick = sectionBullets.slice(0, maxHighlights);
+            } else if (globalBullets.length) {
+              // Fall back to bullets from the whole body
+              pick = globalBullets.slice(0, maxHighlights);
+            } else {
+              // No bullets at all: fall back to first non-empty, non-"full changelog" lines globally
+              const fallbackLines = lines.filter(l => !/full\s+changelog/i.test(l));
+              pick = fallbackLines.slice(0, maxHighlights);
+            }
 
             const highlightsText = pick.length
               ? pick.map(l => {
