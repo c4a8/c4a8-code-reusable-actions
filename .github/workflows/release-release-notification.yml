@@ -1,0 +1,46 @@
+name: Release Release notification Version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-notification.yml"
+  workflow_dispatch:
+    inputs:
+      create_tag:
+        description: "Create a Git tag and release"
+        default: false
+        type: boolean
+      is_prerelease:
+        description: "Create a prerelease version"
+        default: false
+        type: boolean
+
+permissions:
+  packages: write
+  contents: write # needed for the semver action
+  actions: read
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    uses: ./.github/workflows/semver-version.yml
+    with:
+      prefix: "release-notification"
+      suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
+      is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
+
+  notify:
+    needs: version
+    uses: ./.github/workflows/release-notification.yml
+    with:
+      release_tag: ${{ needs.version.outputs.tag }}
+      include_prereleases: false
+      workflow_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    secrets:
+      TEAMS_FLOW_WEBHOOK_URL: ${{ secrets.TEAMS_FLOW_WEBHOOK_URL }}
+
