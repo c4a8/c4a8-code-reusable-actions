@@ -131,12 +131,38 @@ jobs:
             const body = (rel.body || '').trim();
 
             // Strategy:
-            // 1) If release body has bullet-ish lines, take first N bullet lines as highlights
-            // 2) Else take first N non-empty lines (trimmed) as highlights
+            // 1) If a "What's Changed" section exists, use only bullets from that section
+            // 2) Else fall back to first N bullet-ish lines, or first N non-empty lines
             const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const headingIndex = lines.findIndex(l => /^#{1,6}\s+what'?s changed\b/i.test(l));
+            let sectionLines = [];
+            if (headingIndex >= 0) {
+              const targetLevel = lines[headingIndex].match(/^#+/)[0].length;
+              for (let i = headingIndex + 1; i < lines.length; i++) {
+                const headingMatch = lines[i].match(/^#+/);
+                if (headingMatch && headingMatch[0].length <= targetLevel) break;
+                sectionLines.push(lines[i]);
+              }
+            }
 
-            const bulletLike = lines.filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l));
-            const pick = (bulletLike.length ? bulletLike : lines).slice(0, maxHighlights);
+            const sectionBullets = (sectionLines.length ? sectionLines : [])
+              .filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l))
+              .filter(l => !/full\s+changelog/i.test(l));
+            const globalBullets = lines
+              .filter(l => /^[-*•]\s+/.test(l) || /^\d+\.\s+/.test(l))
+              .filter(l => !/full\s+changelog/i.test(l));
+            let pick;
+            if (headingIndex >= 0 && sectionLines.length && sectionBullets.length) {
+              // "What's Changed" section exists and has bullets: use only those bullets
+              pick = sectionBullets.slice(0, maxHighlights);
+            } else if (globalBullets.length) {
+              // Fall back to bullets from the whole body
+              pick = globalBullets.slice(0, maxHighlights);
+            } else {
+              // No bullets at all: fall back to first non-empty, non-"full changelog" lines globally
+              const fallbackLines = lines.filter(l => !/full\s+changelog/i.test(l));
+              pick = fallbackLines.slice(0, maxHighlights);
+            }
 
             const highlightsText = pick.length
               ? pick.map(l => {
@@ -149,18 +175,11 @@ jobs:
             // Summary: first sentence-ish or first line
             const summary = lines[0] ? (lines[0].length > 180 ? lines[0].slice(0, 177) + '…' : lines[0]) : 'New release published.';
 
-            // Try to extract version from tag if it contains vX.Y.Z...
-            const versionMatch = tag.match(/v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/);
-            const version = versionMatch ? versionMatch[1] : '';
-
             const payload = {
-              title: `Release published: ${name}`,
-              repository: `${owner}/${repo}`,
+              title: `${isPrerelease ? 'Pre-Release' : 'Release'} published: ${name}`,
               release: {
                 name,
                 tag,
-                version,
-                isPrerelease,
                 publishedAt,
                 url
               },
