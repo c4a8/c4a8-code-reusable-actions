@@ -27,10 +27,6 @@ on:
         description: "GitHub Personal Access Token with 'write:packages' scope"
         required: true
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: true
-
 jobs:
   publish:
     runs-on: ubuntu-latest
