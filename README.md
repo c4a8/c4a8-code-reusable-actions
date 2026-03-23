@@ -43,8 +43,8 @@ jobs:
       dotnet_version: "10.x" # required: version of .NET SDK to use
       project_path: "project/project.csproj" # required: path to the .NET project file
       package_output: "project/bin/Release" # required: output directory for the NuGet package
-      package_version: 0.0.1 # required: version of the NuGet package to publish
-      assembly_version: 0.0.1 # optional: set specific assembly version
+      package_version: "0.0.1" # required: version of the NuGet package to publish
+      assembly_version: "0.0.1" # optional: set specific assembly version
     secrets:
       github_pat: your-pat-token # required: GitHub Personal Access Token with 'write:packages' scope - use GitHub's secret vars for this
 ```
@@ -55,8 +55,8 @@ jobs:
 - `project_path` _(string, default: empty)_ – Path to the .NET project file (e.g., 'project/project.csproj').
 - `package_output` _(string, default: empty)_ – Output directory for the NuGet package (e.g., 'project/bin/Release').
 - `package_version` _(string, default: empty)_ – Version of the NuGet package to publish (e.g., '1.0.0').
-- `assembly_version` _(string, default: package version)_ – (Optional) Set specific assembly version (e.g., '1.0.0'). If not set, it will default to package version.
-- `github_pat` _(string, default: empty)_ – GitHub Personal Access Token with 'write:packages' scope.
+- `assembly_version` _(string, default: package version)_ – (Optional) Set specific assembly version (e.g., '1.0.0'). If not set, it will default to package version. This version usually has the same value as the package_version.
+- `github_pat` _(string, default: empty)_ – GitHub Personal Access Token with 'write:packages' scope. Use it as secret variable -> `${{ secrets.GITHUB_TOKEN }}`.
 
 ## Semantic versioning workflow <a name="semantic_versioning"> <a id="semantic_versioning"></a>
 
@@ -97,7 +97,7 @@ jobs:
           echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
 ```
 
-### Inputs <a name="semantic_inputs"> <a id="semantic_inputs"></a>
+### Inputs <a name="semantic_inputs" id="semantic_inputs"></a>
 
 - `prefix` _(string, default: empty)_ – Optional prefix prepended to generated tags (for example `license-module-vX.Y.Z`).
 - `suppress_release` _(boolean, default: false)_ – When `true`, skips creating a GitHub release while still creating tags (unless suppressed below).
@@ -106,7 +106,7 @@ jobs:
 - `is_prerelease` _(boolean, default: false)_ – When `true`, generates a prerelease version (for example `1.2.3-rc.1`).
 - `prerelease_name` _(string, default: "prerelease")_ – Name for the prerelease identifier (for example `rc`, `alpha`, `beta`).
 
-### Outputs <a name="semantic_outputs"> <a id="semantic_outputs"></a>
+### Outputs <a name="semantic_outputs" id="semantic_outputs"></a>
 
 - `version` – The calculated semantic version (for example `1.2.3`).
 - `tag` – The tag name that would be created (for example `v1.2.3` or `module-v1.2.3`).
@@ -114,7 +114,7 @@ jobs:
 - `previous_tag` – The most recent matching tag prior to this run, if any.
 - `commit_subject` – The commit message subject that determined the bump decision.
 
-### Bump rules <a name="semantic_bump"> <a id="semantic_bump"></a>
+### Bump rules <a name="semantic_bump" id="semantic_bump"></a>
 
 The workflow inspects the latest commit message and applies the following precedence:
 
@@ -126,17 +126,17 @@ If no existing tags matching `v*` are found, versioning starts from `0.0.0`.
 
 Each run also publishes (or updates) a Git tag matching the new version. By default tags look like `vX.Y.Z`, but you can provide a `prefix` input (for example `license-module`) to emit tags such as `license-module-vX.Y.Z`. The workflow creates a GitHub release with auto-generated release notes for the generated tag. Existing tags or releases are detected and left untouched.
 
-### Commit message hook <a name="semantic_hook"> <a id="semantic_hook"></a>
+### Commit message hook <a name="semantic_hook" id="semantic_hook"></a>
 
 A PowerShell-based Git commit-msg hook is available at `git/hooks/enforceConventionalCommits/commit-msg.ps1` to enforce the [Conventional Commits](https://www.conventionalcommits.org/) standard locally before commits are created.
 
-### Installation <a name="semantic_install"> <a id="semantic_install"></a>
+### Installation <a name="semantic_install" id="semantic_install"></a>
 
-#### Windows <a name="semantic_windows"> <a id="semantic_windows"></a>
+#### Windows <a name="semantic_windows" id="semantic_windows"></a>
 
 1. Copy **both** the `commit-msg.ps1` and `commit-msg` to your repository's `.git/hooks` directory
 
-#### Mac / Linux <a name="semantic_linux"> <a id="semantic_linux"></a>
+#### Mac / Linux <a name="semantic_linux" id="semantic_linux"></a>
 
 1. Copy just the `commit-msg.ps1` to your repository's `.git/hooks` directory
 1. Remove the .ps1 ending (so the final filename inside the `.git/hooks` directory is `commit-msg`)
@@ -146,7 +146,7 @@ A PowerShell-based Git commit-msg hook is available at `git/hooks/enforceConvent
 chmod +x .git/hooks/commit-msg
 ```
 
-### What it validates <a name="semantic_validate"> <a id="semantic_validate"></a>
+### What it validates <a name="semantic_validate" id="semantic_validate"></a>
 
 The hook validates that commit messages follow the Conventional Commits format:
 
@@ -158,7 +158,7 @@ The hook validates that commit messages follow the Conventional Commits format:
 [optional footer(s)]
 ```
 
-#### Valid types <a name="semantic_types"> <a id="semantic_types"></a>
+#### Valid types <a name="semantic_types" id="semantic_types"></a>
 
 | Type       | Description                                               |
 | ---------- | --------------------------------------------------------- |
@@ -175,7 +175,7 @@ The hook validates that commit messages follow the Conventional Commits format:
 | `revert`   | Reverts a previous commit                                 |
 | `deps`     | Dependency updates                                        |
 
-#### Examples <a name="semantic_examples"> <a id="semantic_examples"></a>
+#### Examples <a name="semantic_examples" id="semantic_examples"></a>
 
 ```
 feat: add user authentication
@@ -184,7 +184,7 @@ feat(auth)!: change login flow (breaking change)
 docs: update README with setup instructions
 ```
 
-### Warnings <a name="semantic_warnings"> <a id="semantic_warnings"></a>
+### Warnings <a name="semantic_warnings" id="semantic_warnings"></a>
 
 The hook will display warnings (but not reject the commit) for:
 
