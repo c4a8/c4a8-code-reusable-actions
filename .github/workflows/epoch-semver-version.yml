@@ -104,16 +104,20 @@ jobs:
           $lastStableWeek = 0
           $lastStablePatch = 0
 
-          # find latest stable version by iterating through descending tags until theres no dash contained
+          # find latest stable epoch semver version (year >= 2020, week 1-53) - standard semver tags are ignored
           foreach ($tag in $allTags) {
             $strippedTag = $tag -replace "^$([regex]::Escape($prefixWithDash))", ''
             $version = $strippedTag -replace '^v', ''
             if ($version -notmatch '-' -and $version -match '^(\d+)\.(\d+)\.(\d+)$') {
-              $lastStableTag = $tag
-              $lastStableYear = [int]$Matches[1]
-              $lastStableWeek = [int]$Matches[2]
-              $lastStablePatch = [int]$Matches[3]
-              break
+              $candidateYear = [int]$Matches[1]
+              $candidateWeek = [int]$Matches[2]
+              if ($candidateYear -ge 2020 -and $candidateWeek -ge 1 -and $candidateWeek -le 53) {
+                $lastStableTag = $tag
+                $lastStableYear = $candidateYear
+                $lastStableWeek = $candidateWeek
+                $lastStablePatch = [int]$Matches[3]
+                break
+              }
             }
           }
 
