@@ -1,0 +1,64 @@
+name: Publish NuGet Package
+
+on:
+  workflow_call:
+    inputs:
+      dotnet_version:
+        description: "Version of .NET SDK to use (e.g., '10.x')"
+        type: string
+        required: true
+      project_path:
+        description: "Path to the .NET project file (e.g., 'project/project.csproj')"
+        type: string
+        required: true
+      package_output:
+        description: "Output directory for the NuGet package (e.g., 'project/bin/Release')"
+        type: string
+        required: true
+      package_version:
+        description: "Version of the NuGet package to publish (e.g., '1.0.0')"
+        type: string
+        required: true
+      assembly_version:
+        description: "(Optional) Set specific assembly version (e.g., '1.0.0'). If not set, it will default to package version."
+        type: string
+    secrets:
+      github_pat:
+        description: "GitHub Personal Access Token with 'write:packages' scope"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        
+      - name: Setup .NET
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Install dependencies
+        run: dotnet restore ${{ inputs.project_path }}
+
+      - name: Build
+        run: dotnet build ${{ inputs.project_path }} --configuration Release --no-restore
+
+      - name: Create NuGet Package
+        run: dotnet pack ${{ inputs.project_path }} --configuration Release --no-build --output ${{ inputs.package_output }} /p:PackageVersion=${{ inputs.package_version }} /p:Version=${{ inputs.assembly_version || inputs.package_version }} --verbosity minimal
+
+      - name: Add GitHub NuGet source
+        run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.github_pat }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+      - name: Publish NuGet Package
+        shell: pwsh
+        run: |
+          Get-ChildItem ${{ inputs.package_output }} -Filter *.nupkg | ForEach-Object {
+            dotnet nuget push $_.FullName `
+              --source "github" `
+              --api-key ${{ secrets.github_pat }} `
+              --skip-duplicate
+          }
