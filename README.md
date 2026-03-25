@@ -26,7 +26,7 @@ Reusable GitHub workflows for repositories in the c4a8 org.
 
 This workflow simplifies the process of publishing NuGet packages. Use this reusable workflow at `.github/workflows/publish-nuget-package-github.yml`. It is designed to be used for publishing packages in the package space of a GitHub organization.
 
-### Calling the workflow <a name="nuget_calling"> <a id="nuget_calling"></a>
+### Calling the workflow <a name="nuget_calling" id="nuget_calling"></a>
 
 ```yaml
 # .github/workflows/publish-nuget-package-github.yml in a consumer repository
@@ -50,7 +50,7 @@ jobs:
       github_pat: your-pat-token # required: GitHub Personal Access Token with 'write:packages' scope - use GitHub's secret vars for this
 ```
 
-### Inputs <a name="nuget_inputs"> <a id="nuget_inputs"></a>
+### Inputs <a name="nuget_inputs" id="nuget_inputs"></a>
 
 - `dotnet_version` _(string, default: empty)_ – Version of .NET SDK to use (e.g., '10.x').
 - `project_path` _(string, default: empty)_ – Path to the .NET project file (e.g., 'project/project.csproj').
@@ -59,17 +59,17 @@ jobs:
 - `assembly_version` _(string, default: package version)_ – (Optional) Set specific assembly version (e.g., '1.0.0'). If not set, it will default to package version. This version usually has the same value as the package_version.
 - `github_pat` _(string, default: empty)_ – GitHub Personal Access Token with 'write:packages' scope. Use it as secret variable -> `${{ secrets.GITHUB_TOKEN }}`.
 
-## Epoch Semantic Versioning workflow <a name="epoch_versioning"> <a id="epoch_versioning"></a>
+## Epoch Semantic Versioning workflow <a name="epoch_versioning" id="epoch_versioning"></a>
 
 This workflow introduces a generation possibility of epoch semantic version (e.g. v2026.8.2). On code changes only patch level will be raised unless the change was made in a new calendar week / year.
 Use the reusable workflow at `.github/workflows/epoch-semver-version.yml` to compute the next epoch semantic version, expose it as an output, and tag the current commit.  
-**Note:** This workflow is very similar to the [**Semantic Versioning workflow**](#semantic-versioning-workflow). So please fall back to that documentation for further information.
+**Note:** This workflow is very similar to the [**Semantic Versioning workflow**](#semantic_versioning). So please fall back to that documentation for further information.
 
-## Semantic Versioning workflow <a name="semantic_versioning"> <a id="semantic_versioning"></a>
+## Semantic Versioning workflow <a name="semantic_versioning" id="semantic_versioning"></a>
 
 Use the reusable workflow at `.github/workflows/semver-version.yml` to compute the next semantic version, expose it as an output, and tag the current commit.
 
-### Calling the workflow <a name="semantic_calling"> <a id="semantic_calling"></a>
+### Calling the workflow <a name="semantic_calling" id="semantic_calling"></a>
 
 ```yaml
 # .github/workflows/release.yml in a consumer repository
