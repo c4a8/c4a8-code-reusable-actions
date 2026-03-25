@@ -193,25 +193,11 @@ jobs:
             }
           }
 
-          # Find the latest tag with the same prerelease name (for changelog)
-          $latestSameNamePrereleaseTag = ''
-          if ($isPrerelease) {
-            $escapedName = [regex]::Escape($prereleaseName)
-            foreach ($tag in $allTags) {
-              $strippedTag = $tag -replace "^$([regex]::Escape($prefixWithDash))", ''
-              $version = $strippedTag -replace '^v', ''
-              if ($version -match "^\d+\.\d+\.\d+-${escapedName}\.\d+$") {
-                $latestSameNamePrereleaseTag = $tag
-                break
-              }
-            }
-          }
-
           # Build the final version string and determine changelog base tag
           if ($isPrerelease) {
             $prereleaseVersion = $lastPrereleaseVersion + 1
             $newVersion = "$newYear.$newWeek.$newPatch-$prereleaseName.$prereleaseVersion"
-            $changelogBaseTag = $latestSameNamePrereleaseTag ? $latestSameNamePrereleaseTag : $lastStableTag
+            $changelogBaseTag = $lastPrereleaseTag ? $lastPrereleaseTag : $lastStableTag
           } else {
             $newVersion = "$newYear.$newWeek.$newPatch"
             $changelogBaseTag = $lastStableTag
