@@ -7,7 +7,8 @@ Reusable GitHub workflows for repositories in the c4a8 org.
 - [Publish NuGet package workflow](#publish_nuget)
   - [Calling the workflow](#nuget_calling)
   - [Inputs](#nuget_inputs)
-- [Semantic versioning workflow](#semantic_versioning)
+- [Epoch Semantic Versioning workflow](#epoch_versioning)
+- [Semantic Versioning workflow](#semantic_versioning)
   - [Calling the workflow](#semantic_calling)
   - [Inputs](#semantic_inputs)
   - [Outputs](#semantic_outputs)
@@ -25,7 +26,7 @@ Reusable GitHub workflows for repositories in the c4a8 org.
 
 This workflow simplifies the process of publishing NuGet packages. Use this reusable workflow at `.github/workflows/publish-nuget-package-github.yml`. It is designed to be used for publishing packages in the package space of a GitHub organization.
 
-### Calling the workflow <a name="nuget_calling"> <a id="nuget_calling"></a>
+### Calling the workflow <a name="nuget_calling" id="nuget_calling"></a>
 
 ```yaml
 # .github/workflows/publish-nuget-package-github.yml in a consumer repository
@@ -49,7 +50,7 @@ jobs:
       github_pat: your-pat-token # required: GitHub Personal Access Token with 'write:packages' scope - use GitHub's secret vars for this
 ```
 
-### Inputs <a name="nuget_inputs"> <a id="nuget_inputs"></a>
+### Inputs <a name="nuget_inputs" id="nuget_inputs"></a>
 
 - `dotnet_version` _(string, default: empty)_ – Version of .NET SDK to use (e.g., '10.x').
 - `project_path` _(string, default: empty)_ – Path to the .NET project file (e.g., 'project/project.csproj').
@@ -58,11 +59,25 @@ jobs:
 - `assembly_version` _(string, default: package version)_ – (Optional) Set specific assembly version (e.g., '1.0.0'). If not set, it will default to package version. This version usually has the same value as the package_version.
 - `github_pat` _(string, default: empty)_ – GitHub Personal Access Token with 'write:packages' scope. Use it as secret variable -> `${{ secrets.GITHUB_TOKEN }}`.
 
-## Semantic versioning workflow <a name="semantic_versioning"> <a id="semantic_versioning"></a>
+## Epoch Semantic Versioning workflow <a name="epoch_versioning" id="epoch_versioning"></a>
+
+This workflow generates an epoch semantic version of the form `vYYYY.WW.P` (e.g. `v2026.8.2`), where `YYYY` is the ISO year, `WW` is the ISO calendar week, and `P` is the patch level.
+
+The bump type is determined from commit messages (same rules as the [Semantic Versioning](#semantic_bump) workflow):
+
+- **Release** — triggered by `feat:`, `feat(<scope>):`, `BREAKING CHANGE:`, or any type ending in `!:` (e.g. `fix!:`).
+  - If the current calendar week/year **differs** from the previous stable tag: advance to the current year and week, reset patch to `0`.
+  - If the current calendar week/year is the **same** as the previous stable tag: increment patch (behaves like a patch bump).
+- **Patch** — any other commit message: increment the patch level and keep the year and week of the previous stable tag, regardless of the current date.
+  Use the reusable workflow at `.github/workflows/epoch-semver-version.yml` to compute the next epoch semantic version, expose it as an output, and tag the current commit.
+
+**Note:** This workflow is very similar to the [**Semantic Versioning workflow**](#semantic_versioning). So please fall back to that documentation for further information.
+
+## Semantic Versioning workflow <a name="semantic_versioning" id="semantic_versioning"></a>
 
 Use the reusable workflow at `.github/workflows/semver-version.yml` to compute the next semantic version, expose it as an output, and tag the current commit.
 
-### Calling the workflow <a name="semantic_calling"> <a id="semantic_calling"></a>
+### Calling the workflow <a name="semantic_calling" id="semantic_calling"></a>
 
 ```yaml
 # .github/workflows/release.yml in a consumer repository
