@@ -1,0 +1,35 @@
+name: Release Publish Nuget Package
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-nuget-package-github.yml"
+  workflow_dispatch:
+    inputs:
+      create_tag:
+        description: "Create a Git tag and release"
+        default: false
+        type: boolean
+      is_prerelease:
+        description: "Create a prerelease version"
+        default: false
+        type: boolean
+
+permissions:
+  packages: write
+  contents: write # needed for the semver action
+  actions: read
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    uses: ./.github/workflows/semver-version.yml
+    with:
+      prefix: "publish-nuget-package"
+      suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
+      is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
