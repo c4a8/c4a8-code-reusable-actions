@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   version:
-    uses: ./.github/workflows/epoch-semver-version.yml
+    uses: ./.github/workflows/semver-version.yml
     with:
       prefix: "epoch-semver-versioning"
       suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}

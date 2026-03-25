@@ -61,8 +61,16 @@ jobs:
 
 ## Epoch Semantic Versioning workflow <a name="epoch_versioning" id="epoch_versioning"></a>
 
-This workflow introduces a generation possibility of epoch semantic version (e.g. v2026.8.2). On code changes only patch level will be raised unless the change was made in a new calendar week / year.
-Use the reusable workflow at `.github/workflows/epoch-semver-version.yml` to compute the next epoch semantic version, expose it as an output, and tag the current commit.  
+This workflow generates an epoch semantic version of the form `vYYYY.WW.P` (e.g. `v2026.8.2`), where `YYYY` is the ISO year, `WW` is the ISO calendar week, and `P` is the patch level.
+
+The bump type is determined from commit messages (same rules as the [Semantic Versioning](#semantic_bump) workflow):
+
+- **Release** — triggered by `feat:`, `feat(<scope>):`, `BREAKING CHANGE:`, or any type ending in `!:` (e.g. `fix!:`).
+  - If the current calendar week/year **differs** from the previous stable tag: advance to the current year and week, reset patch to `0`.
+  - If the current calendar week/year is the **same** as the previous stable tag: increment patch (behaves like a patch bump).
+- **Patch** — any other commit message: increment the patch level and keep the year and week of the previous stable tag, regardless of the current date.
+  Use the reusable workflow at `.github/workflows/epoch-semver-version.yml` to compute the next epoch semantic version, expose it as an output, and tag the current commit.
+
 **Note:** This workflow is very similar to the [**Semantic Versioning workflow**](#semantic_versioning). So please fall back to that documentation for further information.
 
 ## Semantic Versioning workflow <a name="semantic_versioning" id="semantic_versioning"></a>
