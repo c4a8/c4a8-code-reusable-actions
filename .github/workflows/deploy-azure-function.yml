@@ -44,7 +44,7 @@ on:
         required: true
     secrets:
       github_pat:
-        description: "GitHub Personal Access Token. Use GitHubs ${{ secrets.GITHUB_TOKEN }} here. Required when nuget_source_name is set."
+        description: "GitHub Personal Access Token. Use GitHubs standard secret GITHUB_TOKEN here. Required when nuget_source_name is set."
         required: false
 
 jobs:
