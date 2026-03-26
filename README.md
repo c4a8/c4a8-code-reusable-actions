@@ -4,6 +4,9 @@ Reusable GitHub workflows for repositories in the c4a8 org.
 
 # Table of contents
 
+- [Deploy Azure Function workflow](#deploy_function)
+  - [Calling the workflow](#function_calling)
+  - [Inputs](#function_inputs)
 - [Publish NuGet package workflow](#publish_nuget)
   - [Calling the workflow](#nuget_calling)
   - [Inputs](#nuget_inputs)
@@ -20,6 +23,51 @@ Reusable GitHub workflows for repositories in the c4a8 org.
     - [Valid types](#semantic_types)
     - [Examples](#semantic_examples)
   - [Warnings](#semantic_warnings)
+
+## Deploy Azure Function workflow <a name="deploy_function" id="deploy_function"></a>
+
+This workflow simplifies the process of deploying Azure Functions. Use this reusable workflow at `.github/workflows/deploy-azure-function.yml`.
+
+### Calling the workflow <a name="function_calling" id="function_calling"></a>
+
+```yaml
+# .github/workflows/deploy-azure-function.yml in a consumer repository
+name: Deploy Azure Function
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    uses: c4a8/c4a8-code-reusable-actions/.github/workflows/deploy-azure-function.yml@main
+    with:
+      dotnet_version: "10.x" # required: version of .NET SDK to use
+      tenant_id: "tenant-id-hash" # required: hash of the tenant id
+      subscription_id: "subscriptio-id-hash" # required: hash of the subscription id
+      client_id: "client-id-hash" # required: hash of the client id of the specific function
+      function_app_name: "function-app-name" # required: name of the function app
+      environment: "production" # optional: deployment environment (e.g., 'staging', 'production')
+      funcignore: false # optional: respect the .funcignore file during deployment
+      nuget_source_name: "nuget-src" # optional: if you have configured a nuget.config
+      project_path: "project/project.csproj" # required: relative path to the .csproj file to build and publish
+    secrets:
+      github_pat: "${{ secrets.GITHUB_TOKEN }}" # optional: required when nuget_source_name is set
+```
+
+### Inputs <a name="function_inputs" id="function_inputs"></a>
+
+- `dotnet_version` _(string, default: empty)_ – Version of .NET SDK to use (e.g., '10.x').
+- `tenant_id` _(string, default: empty)_ – Provide the tenant id hash of your org in Azure.
+- `subscription_id` _(string, default: empty)_ – Provide the subscription id hash.
+- `client_id` _(string, default: empty)_ – Provide the client id hash of your function's client.
+- `function_app_name` _(string, default: empty)_ – Provide the function app name.
+- `environment` _(string, default: production)_ – (Optional) Define your deployment environment (e.g., 'staging', 'production').
+- `funcignore` _(string, default: false)_ – (Optional) Respect the .funcignore file during deployment. A warning shows up if set to true without .funcignore file.
+- `nuget_source_name` _(string, default: "")_ – (Optional) Name of the NuGet package source (used in NuGetPackageSourceCredentials\_{name}). Leave empty to skip NuGet authentication.
+- `project_path` _(string, default: empty)_ – Relative path to the .csproj file to build and publish.
+- `github_pat` _(string, default: empty)_ – (Optional) GitHub Personal Access Token with 'write:packages' scope. Use it as secret variable -> `${{ secrets.GITHUB_TOKEN }}`. Required when nuget_source_name is set
 
 ## Publish NuGet package workflow <a name="publish_nuget" id="publish_nuget"></a>
 
