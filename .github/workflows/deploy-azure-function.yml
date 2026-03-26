@@ -43,8 +43,8 @@ on:
         type: string
         required: true
     secrets:
-      github_token:
-        description: "GitHub Personal Access Token. Required when nuget_source_name is set."
+      github_pat:
+        description: "GitHub Personal Access Token. Use GitHubs ${{ secrets.GITHUB_TOKEN }} here. Required when nuget_source_name is set."
         required: false
 
 jobs:
@@ -69,7 +69,7 @@ jobs:
         env:
           NUGET_SOURCE_NAME: ${{ inputs.nuget_source_name }}
           NUGET_USERNAME: ${{ github.actor }}
-          NUGET_PASSWORD: ${{ secrets.github_token }}
+          NUGET_PASSWORD: ${{ secrets.github_pat }}
         shell: pwsh
         run: |
           if ($env:NUGET_SOURCE_NAME) {
