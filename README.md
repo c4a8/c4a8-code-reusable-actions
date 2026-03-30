@@ -44,9 +44,9 @@ jobs:
     uses: c4a8/c4a8-code-reusable-actions/.github/workflows/deploy-azure-function.yml@main
     with:
       dotnet_version: "10.x" # required: version of .NET SDK to use
-      tenant_id: "tenant-id-hash" # required: hash of the tenant id
-      subscription_id: "subscriptio-id-hash" # required: hash of the subscription id
-      client_id: "client-id-hash" # required: hash of the client id of the specific function
+      tenant_id: "tenant-id" # required: of the tenant id
+      subscription_id: "subscription-id" # required: of the subscription id
+      client_id: "client-id" # required: of the client id of the specific function
       function_app_name: "function-app-name" # required: name of the function app
       environment: "production" # optional: deployment environment (e.g., 'staging', 'production')
       funcignore: false # optional: respect the .funcignore file during deployment
@@ -59,15 +59,18 @@ jobs:
 ### Inputs <a name="function_inputs" id="function_inputs"></a>
 
 - `dotnet_version` _(string, default: empty)_ – Version of .NET SDK to use (e.g., '10.x').
-- `tenant_id` _(string, default: empty)_ – Provide the tenant id hash of your org in Azure.
-- `subscription_id` _(string, default: empty)_ – Provide the subscription id hash.
-- `client_id` _(string, default: empty)_ – Provide the client id hash of your function's client.
+- `tenant_id` _(string, default: empty)_ – Azure Tenant ID (GUID). Found in Azure Portal under Azure Active Directory > Overview.
+- `subscription_id` _(string, default: empty)_ – Azure Subscription ID (GUID). Found in Azure Portal under Subscriptions.
+- `client_id` _(string, default: empty)_ – Azure Client ID (GUID) of the app registration used for OIDC authentication.
 - `function_app_name` _(string, default: empty)_ – Provide the function app name.
 - `environment` _(string, default: production)_ – (Optional) Define your deployment environment (e.g., 'staging', 'production').
-- `funcignore` _(string, default: false)_ – (Optional) Respect the .funcignore file during deployment. A warning shows up if set to true without .funcignore file.
+- `funcignore` _(boolean, default: false)_ – (Optional) Respect the .funcignore file during deployment. A warning shows up if set to true without .funcignore file.
 - `nuget_source_name` _(string, default: "")_ – (Optional) Name of the NuGet package source (used in NuGetPackageSourceCredentials\_{name}). Leave empty to skip NuGet authentication.
 - `project_path` _(string, default: empty)_ – Relative path to the .csproj file to build and publish.
-- `github_pat` _(string, default: empty)_ – (Optional) GitHub Personal Access Token with 'write:packages' scope. Use it as secret variable -> `${{ secrets.GITHUB_TOKEN }}`. Required when nuget_source_name is set
+
+**Secrets**
+
+- `github_pat` _(secret)_ – (Optional) GitHub Personal Access Token. Pass via `secrets: github_pat: ${{ secrets.GITHUB_TOKEN }}`. Required when `nuget_source_name` is set.
 
 ## Publish NuGet package workflow <a name="publish_nuget" id="publish_nuget"></a>
 
