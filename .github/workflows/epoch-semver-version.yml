@@ -155,7 +155,7 @@ jobs:
           }
 
           # Get current year and calendar week
-          $now = Get-Date
+          $now = Get-Date -AsUTC
           $currentWeek = [System.Globalization.ISOWeek]::GetWeekOfYear($now)
           $currentYear = [System.Globalization.ISOWeek]::GetYear($now)
 
