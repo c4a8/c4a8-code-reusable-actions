@@ -160,7 +160,7 @@ jobs:
           $currentYear = [System.Globalization.ISOWeek]::GetYear($now)
 
           # Determine version
-          $sameEpoch = $lastStableTag -and ($currentYear -eq $lastStableYear) -and ($currentWeek -eq $lastStableWeek)
+          $sameEpoch = $lastStableTag -and ($currentYear -le $lastStableYear) -and ($currentWeek -le $lastStableWeek)
 
           if ($highestLevel -eq 1 -and -not $sameEpoch) {
             $newYear = $currentYear
