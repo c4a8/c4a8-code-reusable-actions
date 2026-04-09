@@ -132,7 +132,7 @@ jobs:
           $featPattern = '^feat(\([^)]*\))?:'
           $breakingChangePattern = '^BREAKING CHANGE:'
 
-          $highestLevel = 0
+          $isBreakingChangeOrFeature = $false
           $commitSubject = ''
 
           foreach ($subject in $commitSubjects) {
@@ -141,11 +141,11 @@ jobs:
             }
 
             if ($subject -match $releasePattern -or $subject -match $breakingChangePattern) {
-              $highestLevel = 1
+              $isBreakingChangeOrFeature = $true
               $commitSubject = $subject
               break
-            } elseif ($subject -match $featPattern -and $highestLevel -lt 1) {
-              $highestLevel = 1
+            } elseif ($subject -match $featPattern -and -not $isBreakingChangeOrFeature) {
+              $isBreakingChangeOrFeature = $true
               $commitSubject = $subject
             }
           }
@@ -162,7 +162,7 @@ jobs:
           # Determine version
           $sameEpoch = $lastStableTag -and ($currentYear -le $lastStableYear) -and ($currentWeek -le $lastStableWeek)
 
-          if ($highestLevel -eq 1 -and -not $sameEpoch) {
+          if ($isBreakingChangeOrFeature -and -not $sameEpoch) {
             $newYear = $currentYear
             $newWeek = $currentWeek
             $newPatch = 0
