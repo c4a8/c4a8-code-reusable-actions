@@ -84,7 +84,7 @@ jobs:
           $prefix = $env:PREFIX
           $checkLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
           $isPrerelease = $env:IS_PRERELEASE -eq 'true'
-          $prereleaseName = if ($env:PRERELEASE_NAME) { $env:PRERELEASE_NAME } else { 'prerelease' }
+          $prereleaseName = ($env:PRERELEASE_NAME) ?? 'prerelease'
 
           if ($prefix) {
             $tagMatch = "$prefix-v*"
