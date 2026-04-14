@@ -225,6 +225,8 @@ jobs:
           PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
           COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
         run: |
+          $ErrorActionPreference = 'Stop'
+
           $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
           $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
 
@@ -244,6 +246,8 @@ jobs:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+
           git rev-parse -q --verify "refs/tags/$($env:TAG_NAME)" 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Tag $($env:TAG_NAME) already exists. Skipping creation."
@@ -269,6 +273,8 @@ jobs:
           IS_PRERELEASE: ${{ inputs.is_prerelease }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+
           gh release view $env:TAG_NAME 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
