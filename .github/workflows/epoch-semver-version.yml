@@ -1,0 +1,294 @@
+name: Generate Epoch Semantic Version
+
+on:
+  workflow_call:
+    inputs:
+      prefix:
+        description: "Optional prefix to prepend to generated tags (e.g., module names)"
+        required: false
+        type: string
+        default: ""
+      suppress_release:
+        description: "If true, skip creating a GitHub release"
+        required: false
+        type: boolean
+        default: false
+      suppress_tag:
+        description: "If true, skip creating a Git tag and release"
+        required: false
+        type: boolean
+        default: false
+      check_last_commit_only:
+        description: "If true, only inspect the most recent commit when determining bump type"
+        required: false
+        type: boolean
+        default: false
+      is_prerelease:
+        description: "If true, generate a prerelease version"
+        required: false
+        type: boolean
+        default: false
+      prerelease_name:
+        description: "Name for prerelease identifier (e.g., 'prerelease', 'rc', 'alpha')"
+        required: false
+        type: string
+        default: "prerelease"
+    outputs:
+      version:
+        description: "Calculated epoch semantic version (year.week.patch)"
+        value: ${{ jobs.bump.outputs.version }}
+      tag:
+        description: "Created tag name"
+        value: ${{ jobs.bump.outputs.tag }}
+      bump_type:
+        description: "Type of bump applied (release, patch)"
+        value: ${{ jobs.bump.outputs.bump_type }}
+      previous_tag:
+        description: "Most recent tag prior to calculation (if any)"
+        value: ${{ jobs.bump.outputs.previous_tag }}
+      commit_subject:
+        description: "Commit subject that drove the bump decision"
+        value: ${{ jobs.bump.outputs.commit_subject }}
+
+jobs:
+  bump:
+    name: Determine version and tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      tag: ${{ steps.compute.outputs.tag }}
+      bump_type: ${{ steps.compute.outputs.bump_type }}
+      previous_tag: ${{ steps.compute.outputs.previous_tag }}
+      previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
+      commit_subject: ${{ steps.compute.outputs.commit_subject }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: compute
+        env:
+          PREFIX: ${{ inputs.prefix }}
+          CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
+          IS_PRERELEASE: ${{ inputs.is_prerelease }}
+          PRERELEASE_NAME: ${{ inputs.prerelease_name }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $prefix = $env:PREFIX
+          $checkLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
+          $isPrerelease = $env:IS_PRERELEASE -eq 'true'
+          $prereleaseName = ($env:PRERELEASE_NAME) ?? 'prerelease'
+
+          if ($prefix) {
+            $tagMatch = "$prefix-v*"
+            $prefixWithDash = "$prefix-"
+          } else {
+            $tagMatch = 'v*'
+            $prefixWithDash = ''
+          }
+
+          # Get all tags matching the pattern, sorted by version descending
+          $tagOutput = git tag -l $tagMatch --sort=-version:refname
+          $allTags = @($tagOutput | Where-Object { $_ })
+
+          # Find the last stable version (no prerelease identifier)
+          $lastStableTag = ''
+          $lastStableYear = 0
+          $lastStableWeek = 0
+          $lastStablePatch = 0
+
+          # find latest stable epoch semver version (year >= 2020, week 1-53) - standard semver tags are ignored
+          foreach ($tag in $allTags) {
+            $strippedTag = $tag -replace "^$([regex]::Escape($prefixWithDash))", ''
+            $version = $strippedTag -replace '^v', ''
+            if ($version -notmatch '-' -and $version -match '^(\d+)\.(\d+)\.(\d+)$') {
+              $candidateYear = [int]$Matches[1]
+              $candidateWeek = [int]$Matches[2]
+              if ($candidateYear -ge 2020 -and $candidateWeek -ge 1 -and $candidateWeek -le 53) {
+                $lastStableTag = $tag
+                $lastStableYear = $candidateYear
+                $lastStableWeek = $candidateWeek
+                $lastStablePatch = [int]$Matches[3]
+                break
+              }
+            }
+          }
+
+          # Determine which commits to check based on mode
+          $logLimit = $checkLastCommitOnly ? @('-1') : @()
+          $logRange = $lastStableTag ? @("$lastStableTag..HEAD") : @()
+          $commitSubjects = @(git log @logLimit --pretty=%s @logRange)
+          $commitSubjects = @($commitSubjects | Where-Object { $_ })
+
+          # Scan commits for bump level: release patterns (BREAKING CHANGE:, feat:, <any>!:) vs patch
+          $releasePattern = '^\S*!:'
+          $featPattern = '^feat(\([^)]*\))?:'
+          $breakingChangePattern = '^BREAKING CHANGE:'
+
+          $isBreakingChangeOrFeature = $false
+          $commitSubject = ''
+
+          foreach ($subject in $commitSubjects) {
+            if (-not $commitSubject) {
+            $commitSubject = $subject
+            }
+
+            if ($subject -match $releasePattern -or $subject -match $breakingChangePattern) {
+              $isBreakingChangeOrFeature = $true
+              $commitSubject = $subject
+              break
+            } elseif ($subject -match $featPattern -and -not $isBreakingChangeOrFeature) {
+              $isBreakingChangeOrFeature = $true
+              $commitSubject = $subject
+            }
+          }
+
+          if ($commitSubjects.Count -eq 0) {
+            $commitSubject = 'No commits since last release'
+          }
+
+          # Get current year and calendar week
+          $now = Get-Date -AsUTC
+          $currentWeek = [System.Globalization.ISOWeek]::GetWeekOfYear($now)
+          $currentYear = [System.Globalization.ISOWeek]::GetYear($now)
+
+          # Determine version
+          $sameEpoch = $lastStableTag -and ($currentYear -le $lastStableYear) -and ($currentWeek -le $lastStableWeek)
+
+          if ($isBreakingChangeOrFeature -and -not $sameEpoch) {
+            $newYear = $currentYear
+            $newWeek = $currentWeek
+            $newPatch = 0
+            $bumpType = 'release'
+          } else {
+            $newYear = $lastStableTag ? $lastStableYear : $currentYear
+            $newWeek = $lastStableTag ? $lastStableWeek : $currentWeek
+            $newPatch = $lastStablePatch + 1
+            $bumpType = 'patch'
+          }
+
+          $targetBaseVersion = "$newYear.$newWeek.$newPatch"
+
+          # Find the last prerelease for this target base version and name
+          $lastPrereleaseTag = ''
+          $lastPrereleaseVersion = 0
+
+          if ($isPrerelease) {
+            $escapedName = [regex]::Escape($prereleaseName)
+            foreach ($tag in $allTags) {
+              $strippedTag = $tag -replace "^$([regex]::Escape($prefixWithDash))", ''
+              $version = $strippedTag -replace '^v', ''
+              if ($version -match "^(\d+\.\d+\.\d+)-${escapedName}\.(\d+)$" -and $Matches[1] -eq $targetBaseVersion) {
+                $lastPrereleaseTag = $tag
+                $lastPrereleaseVersion = [int]$Matches[2]
+                break
+              }
+            }
+          }
+
+          # Build the final version string and determine changelog base tag
+          if ($isPrerelease) {
+            $prereleaseVersion = $lastPrereleaseVersion + 1
+            $newVersion = "$newYear.$newWeek.$newPatch-$prereleaseName.$prereleaseVersion"
+            $changelogBaseTag = $lastPrereleaseTag ? $lastPrereleaseTag : $lastStableTag
+          } else {
+            $newVersion = "$newYear.$newWeek.$newPatch"
+            $changelogBaseTag = $lastStableTag
+          }
+
+          $newTag = "${prefixWithDash}v${newVersion}"
+
+          # Write outputs
+          "bump_type=$bumpType" >> $env:GITHUB_OUTPUT
+          "previous_tag=$lastStableTag" >> $env:GITHUB_OUTPUT
+          "previous_tag_for_changelog=$changelogBaseTag" >> $env:GITHUB_OUTPUT
+          "version=$newVersion" >> $env:GITHUB_OUTPUT
+          "tag=$newTag" >> $env:GITHUB_OUTPUT
+          "commit_subject=$commitSubject" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Determined $bumpType bump from '$commitSubject' -> $newTag"
+          Write-Host "Changelog will be generated from: $($changelogBaseTag ? $changelogBaseTag : 'initial commit')"
+
+      - name: Write summary
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.compute.outputs.version }}
+          TAG: ${{ steps.compute.outputs.tag }}
+          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+          PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
+          COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
+          $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
+
+          @(
+            '### Epoch semantic version summary'
+            ''
+            "- Version: ``$($env:VERSION)``"
+            "- Tag: ``$($env:TAG)``"
+            "- Bump type: ``$($env:BUMP_TYPE)``"
+            "- Previous tag: ``$previous``"
+            "- Commit: $commit"
+          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Create and push tag
+        if: ${{ inputs.suppress_tag != true }}
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          git rev-parse -q --verify "refs/tags/$($env:TAG_NAME)" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tag $($env:TAG_NAME) already exists. Skipping creation."
+            exit 0
+          }
+
+          git tag $env:TAG_NAME $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to create tag'
+          }
+          git push origin $env:TAG_NAME
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to push tag'
+          }
+          Write-Host "Pushed tag $($env:TAG_NAME)"
+
+      - name: Create GitHub release
+        if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+          CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IS_PRERELEASE: ${{ inputs.is_prerelease }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          gh release view $env:TAG_NAME 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
+            exit 0
+          }
+
+          Write-Host (
+            $env:CHANGELOG_BASE_TAG
+            ? "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
+            : "Generating release notes from initial commit to $($env:TAG_NAME)"
+          )
+
+          gh release create $env:TAG_NAME --title $env:TAG_NAME --target $env:GITHUB_SHA --generate-notes `
+            $($env:IS_PRERELEASE -eq 'true' ? @('--prerelease') : @()) `
+            $($env:CHANGELOG_BASE_TAG ? @('--notes-start-tag', $env:CHANGELOG_BASE_TAG) : @())
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
+          Write-Host "Created release $($env:TAG_NAME)"
