@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
           dotnet-version: ${{ inputs.dotnet_version }}
 
@@ -89,7 +89,7 @@ jobs:
           subscription-id: ${{ inputs.subscription_id }}
 
       - name: Deploy function app
-        uses: azure/functions-action@ac2abfb0e49d12ed5d273a3cb39f01bdd1654c43 # v1.5.5
+        uses: azure/functions-action@bc63708cc6539760eea18d8a7de4ce8ef5fdf593 # v1.5.6
         with:
           app-name: ${{ inputs.function_app_name }}
           package: ./publish
