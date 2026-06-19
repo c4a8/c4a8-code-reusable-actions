@@ -98,10 +98,6 @@ jobs:
           $tagOutput = git tag -l --sort=-version:refname
           $allTags = @($tagOutput | Where-Object { $_ })
 
-          Write-Host "Debug info:"
-          Write-Host $allTags
-          Write-Host "tagMatch: $tagMatch"
-
           # Find the last stable version (no prerelease identifier)
           $lastStableTag = ''
           $lastStableYear = 0
@@ -124,17 +120,12 @@ jobs:
               }
             }
           }
-          Write-Host "Last stable tag: $lastStableTag"
-
 
           # Determine which commits to check based on mode
           $logLimit = $checkLastCommitOnly ? @('-1') : @()
           $logRange = $lastStableTag ? @("$lastStableTag..HEAD") : @()
           $commitSubjects = @(git log @logLimit --pretty=%s @logRange)
           $commitSubjects = @($commitSubjects | Where-Object { $_ })
-
-          Write-Host "Commit subjects:"
-          Write-Host $commitSubjects
 
           # Scan commits for bump level: release patterns (BREAKING CHANGE:, feat:, <any>!:) vs patch
           $releasePattern = '^\S*!:'
@@ -170,8 +161,6 @@ jobs:
 
           # Determine version
           $sameEpoch = $lastStableTag -and ($currentYear -le $lastStableYear) -and ($currentWeek -le $lastStableWeek)
-          Write-Host "Same epoch: $sameEpoch (current: $currentYear-W$currentWeek, last stable: $lastStableYear-W$lastStableWeek)"
-
 
           if ($isBreakingChangeOrFeature -and -not $sameEpoch) {
             $newYear = $currentYear
@@ -186,7 +175,6 @@ jobs:
           }
 
           $targetBaseVersion = "$newYear.$newWeek.$newPatch"
-          Write-Host "Target base version: $targetBaseVersion"
 
           # Find the last prerelease for this target base version and name
           $lastPrereleaseTag = ''
@@ -216,7 +204,6 @@ jobs:
           }
 
           $newTag = "${prefixWithDash}v${newVersion}"
-          Write-Host "New version: $newVersion, new tag: $newTag"
 
           # Write outputs
           "bump_type=$bumpType" >> $env:GITHUB_OUTPUT
