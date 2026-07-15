@@ -96,9 +96,7 @@ jobs:
 
           # Get all tags matching the pattern, sorted by version descending
           $tagOutput = git tag -l "$tagMatch" --sort=-version:refname
-          Write-Host "Found tags matching '$tagMatch': $($tagOutput -join ', ')"
           $allTags = @($tagOutput | Where-Object { $_ })
-          Write-Host "Filtered tags: $($allTags -join ', ')"
 
           # Find the last stable version (no prerelease identifier)
           $lastStableTag = ''
@@ -218,79 +216,79 @@ jobs:
           Write-Host "Determined $bumpType bump from '$commitSubject' -> $newTag"
           Write-Host "Changelog will be generated from: $($changelogBaseTag ? $changelogBaseTag : 'initial commit')"
 
-      # - name: Write summary
-      #   shell: pwsh
-      #   env:
-      #     VERSION: ${{ steps.compute.outputs.version }}
-      #     TAG: ${{ steps.compute.outputs.tag }}
-      #     BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
-      #     PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
-      #     COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
+      - name: Write summary
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.compute.outputs.version }}
+          TAG: ${{ steps.compute.outputs.tag }}
+          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+          PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
+          COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-      #     $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
-      #     $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
+          $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
+          $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
 
-      #     @(
-      #       '### Epoch semantic version summary'
-      #       ''
-      #       "- Version: ``$($env:VERSION)``"
-      #       "- Tag: ``$($env:TAG)``"
-      #       "- Bump type: ``$($env:BUMP_TYPE)``"
-      #       "- Previous tag: ``$previous``"
-      #       "- Commit: $commit"
-      #     ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
+          @(
+            '### Epoch semantic version summary'
+            ''
+            "- Version: ``$($env:VERSION)``"
+            "- Tag: ``$($env:TAG)``"
+            "- Bump type: ``$($env:BUMP_TYPE)``"
+            "- Previous tag: ``$previous``"
+            "- Commit: $commit"
+          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
 
-      # - name: Create and push tag
-      #   if: ${{ inputs.suppress_tag != true }}
-      #   env:
-      #     TAG_NAME: ${{ steps.compute.outputs.tag }}
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
+      - name: Create and push tag
+        if: ${{ inputs.suppress_tag != true }}
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-      #     git rev-parse -q --verify "refs/tags/$($env:TAG_NAME)" 2>$null
-      #     if ($LASTEXITCODE -eq 0) {
-      #       Write-Host "Tag $($env:TAG_NAME) already exists. Skipping creation."
-      #       exit 0
-      #     }
+          git rev-parse -q --verify "refs/tags/$($env:TAG_NAME)" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tag $($env:TAG_NAME) already exists. Skipping creation."
+            exit 0
+          }
 
-      #     git tag $env:TAG_NAME $env:GITHUB_SHA
-      #     if ($LASTEXITCODE -ne 0) {
-      #       throw 'Failed to create tag'
-      #     }
-      #     git push origin $env:TAG_NAME
-      #     if ($LASTEXITCODE -ne 0) {
-      #       throw 'Failed to push tag'
-      #     }
-      #     Write-Host "Pushed tag $($env:TAG_NAME)"
+          git tag $env:TAG_NAME $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to create tag'
+          }
+          git push origin $env:TAG_NAME
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to push tag'
+          }
+          Write-Host "Pushed tag $($env:TAG_NAME)"
 
-      # - name: Create GitHub release
-      #   if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
-      #   env:
-      #     TAG_NAME: ${{ steps.compute.outputs.tag }}
-      #     CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     IS_PRERELEASE: ${{ inputs.is_prerelease }}
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
+      - name: Create GitHub release
+        if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
+        env:
+          TAG_NAME: ${{ steps.compute.outputs.tag }}
+          CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IS_PRERELEASE: ${{ inputs.is_prerelease }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-      #     gh release view $env:TAG_NAME 2>$null
-      #     if ($LASTEXITCODE -eq 0) {
-      #       Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
-      #       exit 0
-      #     }
+          gh release view $env:TAG_NAME 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
+            exit 0
+          }
 
-      #     Write-Host (
-      #       $env:CHANGELOG_BASE_TAG
-      #       ? "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
-      #       : "Generating release notes from initial commit to $($env:TAG_NAME)"
-      #     )
+          Write-Host (
+            $env:CHANGELOG_BASE_TAG
+            ? "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
+            : "Generating release notes from initial commit to $($env:TAG_NAME)"
+          )
 
-      #     gh release create $env:TAG_NAME --title $env:TAG_NAME --target $env:GITHUB_SHA --generate-notes `
-      #       $($env:IS_PRERELEASE -eq 'true' ? @('--prerelease') : @()) `
-      #       $($env:CHANGELOG_BASE_TAG ? @('--notes-start-tag', $env:CHANGELOG_BASE_TAG) : @())
-      #     if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
-      #     Write-Host "Created release $($env:TAG_NAME)"
+          gh release create $env:TAG_NAME --title $env:TAG_NAME --target $env:GITHUB_SHA --generate-notes `
+            $($env:IS_PRERELEASE -eq 'true' ? @('--prerelease') : @()) `
+            $($env:CHANGELOG_BASE_TAG ? @('--notes-start-tag', $env:CHANGELOG_BASE_TAG) : @())
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
+          Write-Host "Created release $($env:TAG_NAME)"
