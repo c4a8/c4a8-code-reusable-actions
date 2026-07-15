@@ -90,12 +90,12 @@ jobs:
             $tagMatch = "$prefix-v*"
             $prefixWithDash = "$prefix-"
           } else {
-            $tagMatch = 'v*'
-            $prefixWithDash = ''
+            $tagMatch = "v*"
+            $prefixWithDash = ""
           }
 
           # Get all tags matching the pattern, sorted by version descending
-          $tagOutput = git tag -l --sort=-version:refname
+          $tagOutput = git tag -l "$tagMatch" --sort=-version:refname
           $allTags = @($tagOutput | Where-Object { $_ })
 
           # Find the last stable version (no prerelease identifier)
