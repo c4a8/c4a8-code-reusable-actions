@@ -95,7 +95,7 @@ jobs:
           }
 
           # Get all tags matching the pattern, sorted by version descending
-          $tagOutput = git tag -l $tagMatch --sort=-version:refname
+          $tagOutput = git tag -l "v*" --sort=-version:refname
           Write-Host "Found tags matching '$tagMatch': $($tagOutput -join ', ')"
           $allTags = @($tagOutput | Where-Object { $_ })
           Write-Host "Filtered tags: $($allTags -join ', ')"
