@@ -12,11 +12,13 @@ Reusable GitHub workflows for repositories in the c4a8 org.
   - [Inputs](#nuget_inputs)
 - [Epoch Semantic Versioning workflow](#epoch_versioning)
   - [Calling the workflow](#epoch_semantic_calling)
+  - [Permissions](#epoch_semantic_permissions)
   - [Inputs](#epoch_semantic_inputs)
   - [Outputs](#epoch_semantic_outputs)
   - [Bump rules](#epoch_semantic_bump)
 - [Semantic Versioning workflow](#semantic_versioning)
   - [Calling the workflow](#semantic_calling)
+  - [Permissions](#semantic_permissions)
   - [Inputs](#semantic_inputs)
   - [Outputs](#semantic_outputs)
   - [Bump rules](#semantic_bump)
@@ -139,6 +141,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   version:
     uses: c4a8/c4a8-code-reusable-actions/.github/workflows/epoch-semver-version.yml@main
@@ -162,6 +168,11 @@ jobs:
           echo "Prev tag:${{ needs.version.outputs.previous_tag }}"
           echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
 ```
+
+### Permissions <a name="epoch_semantic_permissions" id="epoch_semantic_permissions"></a>
+
+- `contents: write` Provides the workflow with write access to the repository's contents. This allows actions to create commits, tags, releases, or modify files. The epoch-semver action needs to create version tags and releases.
+- `actions: read` Provides the workflow with read access to information about GitHub Actions runs in the repository.
 
 ### Inputs <a name="epoch_semantic_inputs" id="epoch_semantic_inputs"></a>
 
@@ -206,6 +217,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   version:
     uses: c4a8/c4a8-code-reusable-actions/.github/workflows/semver-version.yml@main
@@ -229,6 +244,11 @@ jobs:
           echo "Prev tag:${{ needs.version.outputs.previous_tag }}"
           echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
 ```
+
+### Permissions <a name="semantic_permissions" id="semantic_permissions"></a>
+
+- `contents: write` Provides the workflow with write access to the repository's contents. This allows actions to create commits, tags, releases, or modify files. The semantic versioning action needs to create version tags and releases.
+- `actions: read` Provides the workflow with read access to information about GitHub Actions runs in the repository.
 
 ### Inputs <a name="semantic_inputs" id="semantic_inputs"></a>
 
