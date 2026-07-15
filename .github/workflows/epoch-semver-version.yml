@@ -90,8 +90,8 @@ jobs:
             $tagMatch = "$prefix-v*"
             $prefixWithDash = "$prefix-"
           } else {
-            $tagMatch = 'v*'
-            $prefixWithDash = ''
+            $tagMatch = "v*"
+            $prefixWithDash = ""
           }
 
           # Get all tags matching the pattern, sorted by version descending
