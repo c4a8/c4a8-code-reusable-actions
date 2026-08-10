@@ -287,15 +287,31 @@ jobs:
             exit 0
           }
 
-          Write-Host (
-            $env:CHANGELOG_BASE_TAG
-            ? "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
-            : "Generating release notes from initial commit to $($env:TAG_NAME)"
+          if ($env:CHANGELOG_BASE_TAG) {
+            Write-Host "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
+          } else {
+            Write-Host "Generating release notes from initial commit to $($env:TAG_NAME)"
+          }
+
+          $releaseCreateArguments = @(
+            'release', 'create', $env:TAG_NAME,
+            '--title', $env:TAG_NAME,
+            '--target', $env:GITHUB_SHA,
+            '--generate-notes'
           )
 
-          gh release create $env:TAG_NAME --title $env:TAG_NAME --target $env:GITHUB_SHA --generate-notes `
-            $($env:IS_PRERELEASE -eq 'true' ? @('--prerelease') : @()) `
-            $($env:IS_DRAFT_RELEASE -eq 'true' ? @('--draft') : @()) `
-            $($env:CHANGELOG_BASE_TAG ? @('--notes-start-tag', $env:CHANGELOG_BASE_TAG) : @())
+          if ($env:IS_PRERELEASE -eq 'true') {
+            $releaseCreateArguments += '--prerelease'
+          }
+
+          if ($env:IS_DRAFT_RELEASE -eq 'true') {
+            $releaseCreateArguments += '--draft'
+          }
+
+          if ($env:CHANGELOG_BASE_TAG) {
+            $releaseCreateArguments += @('--notes-start-tag', $env:CHANGELOG_BASE_TAG)
+          }
+
+          gh @releaseCreateArguments
           if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
           Write-Host "Created release $($env:TAG_NAME)"
