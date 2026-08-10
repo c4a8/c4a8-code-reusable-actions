@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      is_draft_release:
+        description: "If true, create the GitHub release as a draft"
+        required: false
+        type: boolean
+        default: false
       suppress_tag:
         description: "If true, skip creating a Git tag and release"
         required: false
@@ -271,6 +276,7 @@ jobs:
           CHANGELOG_BASE_TAG: ${{ steps.compute.outputs.previous_tag_for_changelog }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IS_PRERELEASE: ${{ inputs.is_prerelease }}
+          IS_DRAFT_RELEASE: ${{ inputs.is_draft_release }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -289,6 +295,7 @@ jobs:
 
           gh release create $env:TAG_NAME --title $env:TAG_NAME --target $env:GITHUB_SHA --generate-notes `
             $($env:IS_PRERELEASE -eq 'true' ? @('--prerelease') : @()) `
+            $($env:IS_DRAFT_RELEASE -eq 'true' ? @('--draft') : @()) `
             $($env:CHANGELOG_BASE_TAG ? @('--notes-start-tag', $env:CHANGELOG_BASE_TAG) : @())
           if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
           Write-Host "Created release $($env:TAG_NAME)"
