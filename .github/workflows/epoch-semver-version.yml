@@ -54,6 +54,9 @@ on:
       commit_subject:
         description: "Commit subject that drove the bump decision"
         value: ${{ jobs.bump.outputs.commit_subject }}
+      release_type:
+        description: "Release type resolved from inputs (release, prerelease, draft)"
+        value: ${{ jobs.bump.outputs.release_type }}
 
 jobs:
   bump:
@@ -69,6 +72,7 @@ jobs:
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
       previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
       commit_subject: ${{ steps.compute.outputs.commit_subject }}
+      release_type: ${{ steps.compute.outputs.release_type }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -81,6 +85,7 @@ jobs:
           PREFIX: ${{ inputs.prefix }}
           CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
           IS_PRERELEASE: ${{ inputs.is_prerelease }}
+          IS_DRAFT_RELEASE: ${{ inputs.is_draft_release }}
           PRERELEASE_NAME: ${{ inputs.prerelease_name }}
         shell: pwsh
         run: |
@@ -89,8 +94,17 @@ jobs:
           $prefix = $env:PREFIX
           $checkLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
           $isPrerelease = $env:IS_PRERELEASE -eq 'true'
+          $isDraftRelease = $env:IS_DRAFT_RELEASE -eq 'true'
           $prereleaseName = ($env:PRERELEASE_NAME) ?? 'prerelease'
           $hasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($prereleaseName)
+
+          if ($isDraftRelease) {
+            $releaseType = 'draft'
+          } elseif ($isPrerelease) {
+            $releaseType = 'prerelease'
+          } else {
+            $releaseType = 'release'
+          }
 
           if ($prefix) {
             $tagMatch = "$prefix-v*"
@@ -218,6 +232,7 @@ jobs:
           "version=$newVersion" >> $env:GITHUB_OUTPUT
           "tag=$newTag" >> $env:GITHUB_OUTPUT
           "commit_subject=$commitSubject" >> $env:GITHUB_OUTPUT
+          "release_type=$releaseType" >> $env:GITHUB_OUTPUT
 
           Write-Host "Determined $bumpType bump from '$commitSubject' -> $newTag"
           Write-Host "Changelog will be generated from: $($changelogBaseTag ? $changelogBaseTag : 'initial commit')"
@@ -230,6 +245,7 @@ jobs:
           BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
           PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
           COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+          RELEASE_TYPE: ${{ steps.compute.outputs.release_type }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -242,6 +258,7 @@ jobs:
             "- Version: ``$($env:VERSION)``"
             "- Tag: ``$($env:TAG)``"
             "- Bump type: ``$($env:BUMP_TYPE)``"
+            "- Release type: ``$($env:RELEASE_TYPE)``"
             "- Previous tag: ``$previous``"
             "- Commit: $commit"
           ) -join "`n" >> $env:GITHUB_STEP_SUMMARY

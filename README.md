@@ -166,6 +166,7 @@ jobs:
           echo "Version: ${{ needs.version.outputs.version }}"
           echo "Tag:     ${{ needs.version.outputs.tag }}"
           echo "Bump:    ${{ needs.version.outputs.bump_type }}"
+          echo "Type:    ${{ needs.version.outputs.release_type }}"
           echo "Prev tag:${{ needs.version.outputs.previous_tag }}"
           echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
 ```
@@ -190,6 +191,7 @@ jobs:
 - `version` – The calculated semantic version (for example `2026.8.2`).
 - `tag` – The tag name that would be created (for example `v2026.8.2` or `module-v2026.8.2`).
 - `bump_type` – The bump classification applied (`release` or `patch`).
+- `release_type` – The resolved release type from flags (`release`, `prerelease`, or `draft`). When both draft and prerelease are set, `draft` wins.
 - `previous_tag` – The most recent matching tag prior to this run, if any.
 - `commit_subject` – The commit message subject that determined the bump decision.
 
