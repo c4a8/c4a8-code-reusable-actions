@@ -34,7 +34,7 @@ on:
         type: boolean
         default: false
       prerelease_name:
-        description: "Name for prerelease identifier (e.g., 'prerelease', 'rc', 'alpha')"
+        description: "Name for prerelease identifier. Set to an empty string to keep plain epoch semver versions and active prerelease state."
         required: false
         type: string
         default: "prerelease"
@@ -90,6 +90,7 @@ jobs:
           $checkLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
           $isPrerelease = $env:IS_PRERELEASE -eq 'true'
           $prereleaseName = ($env:PRERELEASE_NAME) ?? 'prerelease'
+          $hasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($prereleaseName)
 
           if ($prefix) {
             $tagMatch = "$prefix-v*"
@@ -185,7 +186,7 @@ jobs:
           $lastPrereleaseTag = ''
           $lastPrereleaseVersion = 0
 
-          if ($isPrerelease) {
+          if ($isPrerelease -and $hasPrereleaseSuffix) {
             $escapedName = [regex]::Escape($prereleaseName)
             foreach ($tag in $allTags) {
               $strippedTag = $tag -replace "^$([regex]::Escape($prefixWithDash))", ''
@@ -199,7 +200,7 @@ jobs:
           }
 
           # Build the final version string and determine changelog base tag
-          if ($isPrerelease) {
+          if ($isPrerelease -and $hasPrereleaseSuffix) {
             $prereleaseVersion = $lastPrereleaseVersion + 1
             $newVersion = "$newYear.$newWeek.$newPatch-$prereleaseName.$prereleaseVersion"
             $changelogBaseTag = $lastPrereleaseTag ? $lastPrereleaseTag : $lastStableTag

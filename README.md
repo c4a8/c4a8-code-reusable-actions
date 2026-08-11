@@ -155,7 +155,7 @@ jobs:
       suppress_tag: false # optional: set true to skip both tag and release creation
       check_last_commit_only: false # optional: set true to only inspect the latest commit
       is_prerelease: false # optional: set true to generate a prerelease version
-      prerelease_name: prerelease # optional: name for prerelease identifier (e.g., 'rc', 'alpha', 'beta')
+      prerelease_name: prerelease # optional: name for prerelease identifier (e.g., 'rc', 'alpha', 'beta'); set to "" to keep plain epoch semver version while still marking the GitHub release as prerelease
 
   publish:
     runs-on: ubuntu-latest
@@ -182,8 +182,8 @@ jobs:
 - `is_draft_release` _(boolean, default: false)_ – When `true`, creates the GitHub release as a draft.
 - `suppress_tag` _(boolean, default: false)_ – When `true`, skips creating both the Git tag and the GitHub release.
 - `check_last_commit_only` _(boolean, default: false)_ – When `true`, only the most recent commit is inspected to determine the bump type instead of all commits since the previous tag.
-- `is_prerelease` _(boolean, default: false)_ – When `true`, generates a prerelease version (for example `v2026.8.2-rc.1`).
-- `prerelease_name` _(string, default: "prerelease")_ – Name for the prerelease identifier (for example `rc`, `alpha`, `beta`).
+- `is_prerelease` _(boolean, default: false)_ – When `true`, marks the GitHub release as prerelease and generates a prerelease version suffix unless `prerelease_name` is set to an empty string.
+- `prerelease_name` _(string, default: "prerelease")_ – Name for the prerelease identifier (for example `rc`, `alpha`, `beta`). Set it to an empty string to keep plain epoch semver version format (for example `v2026.8.2`) while still creating a prerelease release.
 
 ### Outputs <a name="epoch_semantic_outputs" id="epoch_semantic_outputs"></a>
 
