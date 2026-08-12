@@ -226,30 +226,6 @@ jobs:
           Write-Host "Determined $bumpType bump from '$commitSubject' -> $newTag"
           Write-Host "Changelog will be generated from: $($changelogBaseTag ? $changelogBaseTag : 'initial commit')"
 
-      - name: Write summary
-        shell: pwsh
-        env:
-          VERSION: ${{ steps.compute.outputs.version }}
-          TAG: ${{ steps.compute.outputs.tag }}
-          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
-          PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
-          COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
-          $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
-
-          @(
-            '### Epoch semantic version summary'
-            ''
-            "- Version: ``$($env:VERSION)``"
-            "- Tag: ``$($env:TAG)``"
-            "- Bump type: ``$($env:BUMP_TYPE)``"
-            "- Previous tag: ``$previous``"
-            "- Commit: $commit"
-          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
-
       - name: Create and push tag
         if: ${{ inputs.suppress_tag != true }}
         env:
@@ -334,3 +310,30 @@ jobs:
 
           $releaseUrl = "$($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/releases/tag/$($env:TAG_NAME)"
           "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Write summary
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.compute.outputs.version }}
+          TAG: ${{ steps.compute.outputs.tag }}
+          BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
+          PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
+          COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
+          RELEASE_ID: ${{ steps.release.outputs.release_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $previous = $env:PREVIOUS_TAG ? $env:PREVIOUS_TAG : 'none'
+          $commit = $env:COMMIT_SUBJECT ? $env:COMMIT_SUBJECT : 'No commits since last release'
+          $releaseId = $env:RELEASE_ID ? $env:RELEASE_ID : 'none'
+
+          @(
+            '### Epoch semantic version summary'
+            ''
+            "- Version: ``$($env:VERSION)``"
+            "- Tag: ``$($env:TAG)``"
+            "- Bump type: ``$($env:BUMP_TYPE)``"
+            "- Previous tag: ``$previous``"
+            "- Commit: $commit"
+            "- Release ID: ``$releaseId``"
+          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
