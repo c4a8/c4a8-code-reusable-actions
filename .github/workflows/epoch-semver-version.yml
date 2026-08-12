@@ -308,7 +308,10 @@ jobs:
 
           "release_id=$releaseId" >> $env:GITHUB_OUTPUT
 
-          $releaseUrl = "$($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/releases/tag/$($env:TAG_NAME)"
+          $releaseUrl = gh api "repos/$($env:GITHUB_REPOSITORY)/releases/$releaseId" --jq '.html_url' 2>$null
+          if ($LASTEXITCODE -ne 0 -or -not $releaseUrl) {
+            throw "Failed to resolve release URL for release id $releaseId"
+          }
           @(
             '### Release'
             ''
