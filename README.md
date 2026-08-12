@@ -155,7 +155,7 @@ jobs:
       suppress_tag: false # optional: set true to skip both tag and release creation
       check_last_commit_only: false # optional: set true to only inspect the latest commit
       is_prerelease: false # optional: set true to generate a prerelease version
-      prerelease_name: "" # optional: set a prerelease suffix name (for example 'rc', 'alpha', 'beta'); keep empty to create a prerelease release without suffix
+      prerelease_name: "" # optional: set a prerelease suffix name (for example 'rc', 'alpha', 'beta'); keep empty to create a prerelease without suffix
 
   publish:
     runs-on: ubuntu-latest
