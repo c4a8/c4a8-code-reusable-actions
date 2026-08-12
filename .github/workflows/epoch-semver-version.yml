@@ -309,7 +309,11 @@ jobs:
           "release_id=$releaseId" >> $env:GITHUB_OUTPUT
 
           $releaseUrl = "$($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/releases/tag/$($env:TAG_NAME)"
-          "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
+          @(
+            '### Release'
+            ''
+            "[$($env:TAG_NAME)]($releaseUrl)"
+          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Write summary
         shell: pwsh
