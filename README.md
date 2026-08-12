@@ -163,11 +163,12 @@ jobs:
     steps:
       - name: Show generated version
         run: |
-          echo "Version: ${{ needs.version.outputs.version }}"
-          echo "Tag:     ${{ needs.version.outputs.tag }}"
-          echo "Bump:    ${{ needs.version.outputs.bump_type }}"
-          echo "Prev tag:${{ needs.version.outputs.previous_tag }}"
-          echo "Commit:  ${{ needs.version.outputs.commit_subject }}"
+          echo "Version:    ${{ needs.version.outputs.version }}"
+          echo "Tag:        ${{ needs.version.outputs.tag }}"
+          echo "Bump:       ${{ needs.version.outputs.bump_type }}"
+          echo "Prev tag:   ${{ needs.version.outputs.previous_tag }}"
+          echo "Commit:     ${{ needs.version.outputs.commit_subject }}"
+          echo "Release ID: ${{ needs.version.outputs.release_id }}"
 ```
 
 ### Permissions <a name="epoch_semantic_permissions" id="epoch_semantic_permissions"></a>
@@ -192,6 +193,7 @@ jobs:
 - `bump_type` – The bump classification applied (`release` or `patch`).
 - `previous_tag` – The most recent matching tag prior to this run, if any.
 - `commit_subject` – The commit message subject that determined the bump decision.
+- `release_id` – Numeric ID of the created (or existing) GitHub release. Empty when release creation is suppressed via `suppress_release` or `suppress_tag`.
 
 The run summary also includes a direct link to the created GitHub release for quick access.
 

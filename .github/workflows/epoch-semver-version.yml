@@ -54,6 +54,9 @@ on:
       commit_subject:
         description: "Commit subject that drove the bump decision"
         value: ${{ jobs.bump.outputs.commit_subject }}
+      release_id:
+        description: "Numeric ID of the created/existing GitHub release. Empty when release creation is suppressed."
+        value: ${{ jobs.bump.outputs.release_id }}
 
 jobs:
   bump:
@@ -69,6 +72,7 @@ jobs:
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
       previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
       commit_subject: ${{ steps.compute.outputs.commit_subject }}
+      release_id: ${{ steps.release.outputs.release_id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -271,6 +275,7 @@ jobs:
           Write-Host "Pushed tag $($env:TAG_NAME)"
 
       - name: Create GitHub release
+        id: release
         if: ${{ inputs.suppress_tag != true && inputs.suppress_release != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
@@ -282,11 +287,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $releaseUrl = ''
-          $existingReleaseUrl = gh release view $env:TAG_NAME --json url --jq '.url' 2>$null
+          $releaseId = ''
+          $existingReleaseId = gh release view $env:TAG_NAME --json databaseId --jq '.databaseId' 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
-            $releaseUrl = $existingReleaseUrl
+            $releaseId = $existingReleaseId
           } else {
             if ($env:CHANGELOG_BASE_TAG) {
               Write-Host "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
@@ -313,13 +318,19 @@ jobs:
               $releaseCreateArguments += @('--notes-start-tag', $env:CHANGELOG_BASE_TAG)
             }
 
-            $releaseUrl = (gh @releaseCreateArguments | Select-Object -Last 1).Trim()
+            gh @releaseCreateArguments
             if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
-            Write-Host "Created release $($env:TAG_NAME) at $releaseUrl"
+
+            $releaseId = (gh release view $env:TAG_NAME --json databaseId --jq '.databaseId')
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to resolve release id after creation' }
+            Write-Host "Created release $($env:TAG_NAME) with id $releaseId"
           }
 
-          if (-not $releaseUrl) {
-            throw 'Failed to resolve release URL - check if the release was created successfully'
+          if (-not $releaseId) {
+            throw 'Failed to resolve release id - check if the release was created successfully'
           }
 
+          "release_id=$releaseId" >> $env:GITHUB_OUTPUT
+
+          $releaseUrl = "$($env:GITHUB_SERVER_URL)/$($env:GITHUB_REPOSITORY)/releases/tag/$($env:TAG_NAME)"
           "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
