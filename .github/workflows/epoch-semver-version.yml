@@ -318,6 +318,8 @@ jobs:
             Write-Host "Created release $($env:TAG_NAME) at $releaseUrl"
           }
 
-          if ($releaseUrl) {
-            "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
+          if (-not $releaseUrl) {
+            throw 'Failed to resolve release URL - check if the release was created successfully'
           }
+
+          "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
