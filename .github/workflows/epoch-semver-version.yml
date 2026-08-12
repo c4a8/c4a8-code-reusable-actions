@@ -54,9 +54,6 @@ on:
       commit_subject:
         description: "Commit subject that drove the bump decision"
         value: ${{ jobs.bump.outputs.commit_subject }}
-      release_type:
-        description: "Release type resolved from inputs (release, prerelease, draft)"
-        value: ${{ jobs.bump.outputs.release_type }}
 
 jobs:
   bump:
@@ -72,7 +69,6 @@ jobs:
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
       previous_tag_for_changelog: ${{ steps.compute.outputs.previous_tag_for_changelog }}
       commit_subject: ${{ steps.compute.outputs.commit_subject }}
-      release_type: ${{ steps.compute.outputs.release_type }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,7 +81,6 @@ jobs:
           PREFIX: ${{ inputs.prefix }}
           CHECK_LAST_COMMIT_ONLY: ${{ inputs.check_last_commit_only }}
           IS_PRERELEASE: ${{ inputs.is_prerelease }}
-          IS_DRAFT_RELEASE: ${{ inputs.is_draft_release }}
           PRERELEASE_NAME: ${{ inputs.prerelease_name }}
         shell: pwsh
         run: |
@@ -94,17 +89,8 @@ jobs:
           $prefix = $env:PREFIX
           $checkLastCommitOnly = $env:CHECK_LAST_COMMIT_ONLY -eq 'true'
           $isPrerelease = $env:IS_PRERELEASE -eq 'true'
-          $isDraftRelease = $env:IS_DRAFT_RELEASE -eq 'true'
           $prereleaseName = $env:PRERELEASE_NAME
           $hasPrereleaseSuffix = -not [string]::IsNullOrWhiteSpace($prereleaseName)
-
-          if ($isDraftRelease) {
-            $releaseType = 'draft'
-          } elseif ($isPrerelease) {
-            $releaseType = 'prerelease'
-          } else {
-            $releaseType = 'release'
-          }
 
           if ($prefix) {
             $tagMatch = "$prefix-v*"
@@ -232,7 +218,6 @@ jobs:
           "version=$newVersion" >> $env:GITHUB_OUTPUT
           "tag=$newTag" >> $env:GITHUB_OUTPUT
           "commit_subject=$commitSubject" >> $env:GITHUB_OUTPUT
-          "release_type=$releaseType" >> $env:GITHUB_OUTPUT
 
           Write-Host "Determined $bumpType bump from '$commitSubject' -> $newTag"
           Write-Host "Changelog will be generated from: $($changelogBaseTag ? $changelogBaseTag : 'initial commit')"
@@ -245,7 +230,6 @@ jobs:
           BUMP_TYPE: ${{ steps.compute.outputs.bump_type }}
           PREVIOUS_TAG: ${{ steps.compute.outputs.previous_tag }}
           COMMIT_SUBJECT: ${{ steps.compute.outputs.commit_subject }}
-          RELEASE_TYPE: ${{ steps.compute.outputs.release_type }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -258,7 +242,6 @@ jobs:
             "- Version: ``$($env:VERSION)``"
             "- Tag: ``$($env:TAG)``"
             "- Bump type: ``$($env:BUMP_TYPE)``"
-            "- Release type: ``$($env:RELEASE_TYPE)``"
             "- Previous tag: ``$previous``"
             "- Commit: $commit"
           ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
@@ -299,37 +282,42 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          gh release view $env:TAG_NAME 2>$null
+          $releaseUrl = ''
+          $existingReleaseUrl = gh release view $env:TAG_NAME --json url --jq '.url' 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $($env:TAG_NAME) already exists. Skipping creation."
-            exit 0
-          }
-
-          if ($env:CHANGELOG_BASE_TAG) {
-            Write-Host "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
+            $releaseUrl = $existingReleaseUrl
           } else {
-            Write-Host "Generating release notes from initial commit to $($env:TAG_NAME)"
+            if ($env:CHANGELOG_BASE_TAG) {
+              Write-Host "Generating release notes from $($env:CHANGELOG_BASE_TAG) to $($env:TAG_NAME)"
+            } else {
+              Write-Host "Generating release notes from initial commit to $($env:TAG_NAME)"
+            }
+
+            $releaseCreateArguments = @(
+              'release', 'create', $env:TAG_NAME,
+              '--title', $env:TAG_NAME,
+              '--target', $env:GITHUB_SHA,
+              '--generate-notes'
+            )
+
+            if ($env:IS_PRERELEASE -eq 'true') {
+              $releaseCreateArguments += '--prerelease'
+            }
+
+            if ($env:IS_DRAFT_RELEASE -eq 'true') {
+              $releaseCreateArguments += '--draft'
+            }
+
+            if ($env:CHANGELOG_BASE_TAG) {
+              $releaseCreateArguments += @('--notes-start-tag', $env:CHANGELOG_BASE_TAG)
+            }
+
+            $releaseUrl = (gh @releaseCreateArguments | Select-Object -Last 1).Trim()
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
+            Write-Host "Created release $($env:TAG_NAME) at $releaseUrl"
           }
 
-          $releaseCreateArguments = @(
-            'release', 'create', $env:TAG_NAME,
-            '--title', $env:TAG_NAME,
-            '--target', $env:GITHUB_SHA,
-            '--generate-notes'
-          )
-
-          if ($env:IS_PRERELEASE -eq 'true') {
-            $releaseCreateArguments += '--prerelease'
+          if ($releaseUrl) {
+            "- Release: [$($env:TAG_NAME)]($releaseUrl)" >> $env:GITHUB_STEP_SUMMARY
           }
-
-          if ($env:IS_DRAFT_RELEASE -eq 'true') {
-            $releaseCreateArguments += '--draft'
-          }
-
-          if ($env:CHANGELOG_BASE_TAG) {
-            $releaseCreateArguments += @('--notes-start-tag', $env:CHANGELOG_BASE_TAG)
-          }
-
-          gh @releaseCreateArguments
-          if ($LASTEXITCODE -ne 0) { throw 'Failed to create release' }
-          Write-Host "Created release $($env:TAG_NAME)"
