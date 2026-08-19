@@ -249,6 +249,7 @@ jobs:
           commit="${COMMIT_SUBJECT:-No commits since last release}"
 
           {
+            echo "YOU JUST GOT PWND"
             echo "### Semantic version summary"
             echo ""
             echo "- Version: \`${VERSION}\`"
