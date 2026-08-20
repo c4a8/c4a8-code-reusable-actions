@@ -30,6 +30,6 @@ jobs:
   version:
     uses: ./.github/workflows/semver-version.yml
     with:
-      prefix: "epoch-semver-versioning"
+      prefix: "epoch-semver-version"
       suppress_tag: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.create_tag)) != true }}
       is_prerelease: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.is_prerelease) }}
