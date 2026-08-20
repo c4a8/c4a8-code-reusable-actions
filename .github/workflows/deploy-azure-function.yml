@@ -59,6 +59,8 @@ jobs:
     steps:
       - name: Checkout files
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -70,6 +72,7 @@ jobs:
           NUGET_SOURCE_NAME: ${{ inputs.nuget_source_name }}
           NUGET_USERNAME: ${{ github.actor }}
           NUGET_PASSWORD: ${{ secrets.github_pat }}
+          PROJECT_PATH: ${{ inputs.project_path }}
         shell: pwsh
         run: |
           if ($env:NUGET_SOURCE_NAME) {
@@ -79,7 +82,7 @@ jobs:
             $credentials = "Username=$($env:NUGET_USERNAME);Password=$($env:NUGET_PASSWORD)"
             Set-Item -Path "Env:NuGetPackageSourceCredentials_$($env:NUGET_SOURCE_NAME)" -Value $credentials
           }
-          dotnet publish "${{ inputs.project_path }}" --configuration Release --output ./publish
+          dotnet publish "$env:PROJECT_PATH" --configuration Release --output ./publish
 
       - name: Login to Azure (OIDC)
         uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
