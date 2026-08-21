@@ -69,6 +69,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Compute next version
         id: compute
@@ -262,6 +263,7 @@ jobs:
         if: ${{ inputs.suppress_tag != true }}
         env:
           TAG_NAME: ${{ steps.compute.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -eo pipefail
@@ -271,7 +273,7 @@ jobs:
           fi
 
           git tag "${TAG_NAME}" "${GITHUB_SHA}"
-          git push origin "${TAG_NAME}"
+          git -c http.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" push origin "${TAG_NAME}"
           echo "Pushed tag ${TAG_NAME}"
 
       - name: Create GitHub release
