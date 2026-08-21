@@ -273,7 +273,7 @@ jobs:
           fi
 
           git tag "${TAG_NAME}" "${GITHUB_SHA}"
-          # Passed via -c so the credential never lands in .git/config
+          # Explicit auth required as credentials are not persisted in checkout-step
           authorization_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64 -w0)"
           git -c http.extraheader="${authorization_header}" push origin "${TAG_NAME}"
           echo "Pushed tag ${TAG_NAME}"
