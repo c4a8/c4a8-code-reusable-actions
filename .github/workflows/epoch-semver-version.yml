@@ -246,7 +246,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw 'Failed to create tag'
           }
-          git -c http.extraheader="AUTHORIZATION: bearer $($env:GITHUB_TOKEN)" push origin $env:TAG_NAME
+          # Explicit auth required as credentials are not persisted in checkout-step
+          $encodedCredential = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$($env:GITHUB_TOKEN)"))
+          $authorizationHeader = "AUTHORIZATION: basic $encodedCredential"
+          git -c http.extraheader="$authorizationHeader" push origin $env:TAG_NAME
           if ($LASTEXITCODE -ne 0) {
             throw 'Failed to push tag'
           }
