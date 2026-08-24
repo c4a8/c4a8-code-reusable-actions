@@ -55,8 +55,7 @@ jobs:
     name: Determine version and tag
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      actions: read
+      contents: write # Needed to create tags and releases
     outputs:
       version: ${{ steps.compute.outputs.version }}
       tag: ${{ steps.compute.outputs.tag }}
