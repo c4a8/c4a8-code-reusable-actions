@@ -18,9 +18,7 @@ on:
         type: boolean
 
 permissions:
-  packages: write
-  contents: write # needed for the epoch-semver action
-  actions: read
+  contents: write # needed for the epoch-semver action (create tag and release)
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
