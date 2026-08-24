@@ -225,7 +225,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   version:
@@ -254,7 +253,6 @@ jobs:
 ### Permissions <a name="semantic_permissions" id="semantic_permissions"></a>
 
 - `contents: write` Provides the workflow with write access to the repository's contents. This allows actions to create commits, tags, releases, or modify files. The semantic versioning action needs to create version tags and releases.
-- `actions: read` Provides the workflow with read access to information about GitHub Actions runs in the repository.
 
 ### Inputs <a name="semantic_inputs" id="semantic_inputs"></a>
 
