@@ -143,7 +143,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   version:
@@ -174,7 +173,6 @@ jobs:
 ### Permissions <a name="epoch_semantic_permissions" id="epoch_semantic_permissions"></a>
 
 - `contents: write` Provides the workflow with write access to the repository's contents. This allows actions to create commits, tags, releases, or modify files. The epoch-semver action needs to create version tags and releases.
-- `actions: read` Provides the workflow with read access to information about GitHub Actions runs in the repository.
 
 ### Inputs <a name="epoch_semantic_inputs" id="epoch_semantic_inputs"></a>
 
