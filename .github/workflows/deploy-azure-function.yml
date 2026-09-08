@@ -57,43 +57,16 @@ jobs:
     environment: ${{ inputs.environment }}
 
     steps:
-      - name: Checkout files
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Deploy Azure Function
+        uses: glueckkanja/action-deploy-azure-function@eed04a1217026b4cacbad49be05ee6b6ee040d57 # v2.0.1
         with:
-          persist-credentials: false
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: ${{ inputs.dotnet_version }}
-
-      - name: Build and publish
-        env:
-          NUGET_SOURCE_NAME: ${{ inputs.nuget_source_name }}
-          NUGET_USERNAME: ${{ github.actor }}
-          NUGET_PASSWORD: ${{ secrets.github_pat }}
-          PROJECT_PATH: ${{ inputs.project_path }}
-        shell: pwsh
-        run: |
-          if ($env:NUGET_SOURCE_NAME) {
-            if (-not $env:NUGET_PASSWORD) {
-              throw "NUGET_PASSWORD is required when NUGET_SOURCE_NAME is set. Please provide a GitHub Personal Access Token with appropriate permissions."
-              }
-            $credentials = "Username=$($env:NUGET_USERNAME);Password=$($env:NUGET_PASSWORD)"
-            Set-Item -Path "Env:NuGetPackageSourceCredentials_$($env:NUGET_SOURCE_NAME)" -Value $credentials
-          }
-          dotnet publish "$env:PROJECT_PATH" --configuration Release --output ./publish
-
-      - name: Login to Azure (OIDC)
-        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
-        with:
-          client-id: ${{ inputs.client_id }}
-          tenant-id: ${{ inputs.tenant_id }}
-          subscription-id: ${{ inputs.subscription_id }}
-
-      - name: Deploy function app
-        uses: azure/functions-action@c5060b3b8bb1ebbcb531abd00c822ecbaa8ea656 # v1.5.7
-        with:
-          app-name: ${{ inputs.function_app_name }}
-          package: ./publish
-          respect-funcignore: ${{ inputs.funcignore }}
+          dotnet_version: ${{ inputs.dotnet_version }}
+          tenant_id: ${{ inputs.tenant_id }}
+          subscription_id: ${{ inputs.subscription_id }}
+          client_id: ${{ inputs.client_id }}
+          function_app_name: ${{ inputs.function_app_name }}
+          environment: ${{ inputs.environment }}
+          funcignore: ${{ inputs.funcignore }}
+          nuget_source_name: ${{ inputs.nuget_source_name }}
+          github_pat: ${{ secrets.github_pat }}
+          project_path: ${{ inputs.project_path }}
