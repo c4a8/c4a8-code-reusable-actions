@@ -1,5 +1,5 @@
 > [!WARNING]
-> **Deprecated:** These workflows are deprecated. Please use our new specialized actions instead https://github.com/glueckkanja. If you want to create a new reusable action please use https://github.com/glueckkanja/reusable-action-template.
+> **Deprecated:** These workflows are deprecated. Please use our new specialized actions instead https://github.com/glueckkanja. If you want to create a new reusable action please use https://github.com/glueckkanja/reusable-action-template. !This repository will be deactivated on 01.01.2027!
 >
 > **Migration Guide:**
 > Please search for the corresponding action which you want to migrate e.g. https://github.com/glueckkanja/action-semantic-version. Look up the latest release and reference its sha with its version commented.

@@ -34,6 +34,8 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Show deprecation warning
+        run: 'echo "::warning::This reusable workflow is deprecated and will be deactivated on 01.01.2027. Please migrate to the specialized glueckkanja action: https://github.com/glueckkanja/action-publish-nuget-package"'
       - name: Publish NuGet Package
         uses: glueckkanja/action-publish-nuget-package@329d8bb522f11c3059ba8425273ea3b59133203f # v2.0.0
         with:
