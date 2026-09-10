@@ -34,48 +34,14 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: ${{ inputs.dotnet_version }}
-
-      - name: Install dependencies
-        env:
-          PROJECT_PATH: ${{ inputs.project_path }}
-        run: dotnet restore "$PROJECT_PATH"
-
-      - name: Build
-        env:
-          PROJECT_PATH: ${{ inputs.project_path }}
-        run: dotnet build "$PROJECT_PATH" --configuration Release --no-restore
-
-      - name: Create NuGet Package
-        env:
-          PROJECT_PATH: ${{ inputs.project_path }}
-          PACKAGE_OUTPUT: ${{ inputs.package_output }}
-          PACKAGE_VERSION: ${{ inputs.package_version }}
-          ASSEMBLY_VERSION: ${{ inputs.assembly_version || inputs.package_version }}
-        run: dotnet pack "$PROJECT_PATH" --configuration Release --no-build --output "$PACKAGE_OUTPUT" /p:PackageVersion="$PACKAGE_VERSION" /p:Version="$ASSEMBLY_VERSION" --verbosity minimal
-
-      - name: Add GitHub NuGet source
-        env:
-          NUGET_PASSWORD: ${{ secrets.github_pat }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
-        run: dotnet nuget add source --username "$GITHUB_ACTOR" --password "$NUGET_PASSWORD" --store-password-in-clear-text --name github "https://nuget.pkg.github.com/$REPOSITORY_OWNER/index.json"
-
+      - name: Show deprecation warning
+        run: 'echo "::warning::This reusable workflow is deprecated and will be deactivated on 01.01.2027. Please migrate to the specialized glueckkanja action: https://github.com/glueckkanja/action-publish-nuget-package"'
       - name: Publish NuGet Package
-        shell: pwsh
-        env:
-          PACKAGE_OUTPUT: ${{ inputs.package_output }}
-          NUGET_PASSWORD: ${{ secrets.github_pat }}
-        run: |
-          Get-ChildItem $env:PACKAGE_OUTPUT -Filter *.nupkg | ForEach-Object {
-            dotnet nuget push $_.FullName `
-              --source "github" `
-              --api-key $env:NUGET_PASSWORD `
-              --skip-duplicate
-          }
+        uses: glueckkanja/action-publish-nuget-package@329d8bb522f11c3059ba8425273ea3b59133203f # v2.0.0
+        with:
+          dotnet_version: ${{ inputs.dotnet_version }}
+          project_path: ${{ inputs.project_path }}
+          package_output: ${{ inputs.package_output }}
+          package_version: ${{ inputs.package_version }}
+          assembly_version: ${{ inputs.assembly_version }}
+          github_pat: ${{ secrets.github_pat }}

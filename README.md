@@ -1,3 +1,11 @@
+> [!WARNING]
+> **Deprecated:** These workflows are deprecated. Please use our new specialized actions instead https://github.com/glueckkanja. If you want to create a new reusable action please use https://github.com/glueckkanja/reusable-action-template. !This repository will be deactivated on 01.01.2027!
+>
+> **Migration Guide:**
+> Please search for the corresponding action which you want to migrate e.g. https://github.com/glueckkanja/action-semantic-version. Look up the latest release and reference its sha with its version commented.
+> Now you don't have to define the explicit workflow file anymore. Just use `glueckkanja/workflow-repository@sha # v1.0.0` to use the action.
+> All workflows in this repository were refactored to use the recent action repositories, so have a look at any of these as reference e.g. [semver-version.yml](.github/workflows/semver-version.yml).
+
 # c4a8-code-reusable-actions
 
 Reusable GitHub workflows for repositories in the c4a8 org.
