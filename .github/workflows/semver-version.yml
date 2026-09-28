@@ -50,6 +50,8 @@ on:
         description: "Commit subject that drove the bump decision"
         value: ${{ jobs.bump.outputs.commit_subject }}
 
+permissions: {}
+
 jobs:
   bump:
     name: Determine version and tag

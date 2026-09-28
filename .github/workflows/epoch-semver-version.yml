@@ -58,12 +58,14 @@ on:
         description: "Numeric ID of the created/existing GitHub release. Empty when release creation is suppressed."
         value: ${{ jobs.bump.outputs.release_id }}
 
+permissions: {}
+
 jobs:
   bump:
     name: Determine version and tag
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Needed to create tags and releases
     outputs:
       version: ${{ steps.epoch-semantic-version.outputs.version }}
       tag: ${{ steps.epoch-semantic-version.outputs.tag }}
