@@ -47,13 +47,16 @@ on:
         description: "GitHub Personal Access Token. Use GitHubs standard secret GITHUB_TOKEN here. Required when nuget_source_name is set."
         required: false
 
+permissions: {}
+
 jobs:
   deploy:
+    name: Deploy Azure Function
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write # Needed to authenticate to Azure using OIDC
       contents: read
-      packages: read
+      packages: read # Needed to restore private NuGet packages from GitHub Packages
     environment: ${{ inputs.environment }}
 
     steps:
