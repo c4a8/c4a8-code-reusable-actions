@@ -69,7 +69,7 @@ jobs:
         run: 'echo "::warning::This reusable workflow is deprecated and will be deactivated on 01.01.2027. Please migrate to the specialized glueckkanja action: https://github.com/glueckkanja/action-semantic-version"'
       - name: Generate Semantic Version
         id: semantic-version
-        uses: glueckkanja/action-semantic-version@bf577c9f78f441761f3d12158310bd8ab4bcd2df # v3.0.1
+        uses: glueckkanja/action-semantic-version@f28349c3cc2ec7845960c583796a3b9acc54720a # v3.0.2
         with:
           prefix: ${{ inputs.prefix }}
           suppress_release: ${{ inputs.suppress_release }}
